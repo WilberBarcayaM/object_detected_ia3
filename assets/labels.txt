@@ -1,0 +1,4 @@
+cama
+gradas
+mesa
+puerta
