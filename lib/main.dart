@@ -90,6 +90,7 @@ class _YoloVideoState extends State<YoloVideo> {
   String _permissionError = '';
   String _activeSpokenObject = '';
   DateTime? _lastDetectionAt;
+  bool _showControlPanel = false;
 
   @override
   void initState() {
@@ -246,27 +247,88 @@ class _YoloVideoState extends State<YoloVideo> {
         centerTitle: true,
         title: const Text('Sensor Ultrasónico'),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
+          Column(
+            children: [
+              Expanded(
+                flex: _showControlPanel ? 6 : 1,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CameraPreview(controller),
+                    ...displayBoxesAroundRecognizedObjects(size),
+                  ],
+                ),
+              ),
+              if (_showControlPanel)
+                Expanded(
+                  flex: 4,
+                  child: _buildControlPanel(),
+                ),
+            ],
+          ),
+          if (!_showControlPanel)
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton(
+                onPressed: () {
+                  setState(() {
+                    _showControlPanel = true;
+                  });
+                },
+                child: const Icon(Icons.settings),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlPanel() {
+    return Container(
+      color: Colors.grey.shade100,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            color: Colors.black12,
+            child: Row(
               children: [
-                AspectRatio(
-                  aspectRatio: controller.value.aspectRatio,
-                  child: CameraPreview(
-                    controller,
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showControlPanel = false;
+                    });
+                  },
+                  icon: const Icon(Icons.arrow_downward),
+                ),
+                const Expanded(
+                  child: Text(
+                    'Controles',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
-                ...displayBoxesAroundRecognizedObjects(size),
               ],
             ),
           ),
-          _controlBT(),
-          _infoDevice(),
-          Expanded(child: _listDevices()),
-          _ultrasonicDisplay(),
-          _toggleSpeakingButton(),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _controlBT(),
+                  _infoDevice(),
+                  _listDevices(),
+                  _ultrasonicDisplay(),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: _toggleSpeakingButton(),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
