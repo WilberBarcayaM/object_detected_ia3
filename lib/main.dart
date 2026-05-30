@@ -87,33 +87,47 @@ class _YoloVideoState extends State<YoloVideo> {
   FlutterTts flutterTts = FlutterTts();
   Timer? _timer;
   bool _isSpeakingEnabled = true;
+  String _permissionError = '';
 
   @override
   void initState() {
     super.initState();
-    init();
-    _requestPermission();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _requestPermission();
+
+    final cameraStatus = await Permission.camera.status;
+    if (!cameraStatus.isGranted) {
+      if (!mounted) return;
+      setState(() {
+        _permissionError = 'Camera permission denied';
+      });
+      return;
+    }
+
     _initBluetooth();
     _initTts();
     _startSpeakingTimer();
+    await init();
   }
 
   init() async {
     cameras = await availableCameras();
     controller = CameraController(cameras[0], ResolutionPreset.low);
-    controller.initialize().then((value) {
-      loadYoloModel().then((value) {
-        setState(() {
-          isLoaded = true;
-          isDetecting = false;
-          yoloResults = [];
-        });
-        startDetection();
-      });
+    await controller.initialize();
+    await loadYoloModel();
+    setState(() {
+      isLoaded = true;
+      isDetecting = false;
+      yoloResults = [];
     });
+    startDetection();
   }
 
-  void _requestPermission() async {
+  Future<void> _requestPermission() async {
+    await Permission.camera.request();
     await Permission.location.request();
     await Permission.bluetooth.request();
     await Permission.bluetoothScan.request();
@@ -184,6 +198,18 @@ class _YoloVideoState extends State<YoloVideo> {
 
   @override
   Widget build(BuildContext context) {
+    if (_permissionError.isNotEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: const Text('Sensor Ultrasónico'),
+        ),
+        body: Center(
+          child: Text(_permissionError),
+        ),
+      );
+    }
+
     final Size size = MediaQuery.of(context).size;
     if (!isLoaded) {
       return const Scaffold(
