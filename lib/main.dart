@@ -88,6 +88,8 @@ class _YoloVideoState extends State<YoloVideo> {
   Timer? _timer;
   bool _isSpeakingEnabled = true;
   String _permissionError = '';
+  String _activeSpokenObject = '';
+  DateTime? _lastDetectionAt;
 
   @override
   void initState() {
@@ -109,7 +111,6 @@ class _YoloVideoState extends State<YoloVideo> {
 
     _initBluetooth();
     _initTts();
-    _startSpeakingTimer();
     await init();
   }
 
@@ -151,16 +152,38 @@ class _YoloVideoState extends State<YoloVideo> {
     await flutterTts.setPitch(1.0);
   }
 
-  void _startSpeakingTimer() {
-    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
-      _speakUltrasonicValue();
+  String _buildSpokenPhrase(String objectName) {
+    final bool hasDistance =
+        _connection?.isConnected == true && ultrasonicValue.isNotEmpty;
+    return hasDistance
+        ? '$objectName a $ultrasonicValue centímetros'
+        : objectName;
+  }
+
+  Future<void> _speakImmediateObject(String objectName) async {
+    if (!_isSpeakingEnabled || objectName.isEmpty) {
+      return;
+    }
+
+    final String phraseToSpeak = _buildSpokenPhrase(objectName);
+    _activeSpokenObject = objectName;
+    _timer?.cancel();
+    await flutterTts.speak(phraseToSpeak);
+    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
+      if (!mounted || !_isSpeakingEnabled || _activeSpokenObject.isEmpty) {
+        return;
+      }
+
+      await _repeatActiveObject();
     });
   }
 
-  Future<void> _speakUltrasonicValue() async {
-    if (ultrasonicValue.isNotEmpty && _isSpeakingEnabled) {
-      await flutterTts.speak(" $ultrasonicValue centímetros");
+  Future<void> _repeatActiveObject() async {
+    if (!_isSpeakingEnabled || _activeSpokenObject.isEmpty) {
+      return;
     }
+
+    await flutterTts.speak(_buildSpokenPhrase(_activeSpokenObject));
   }
 
   void _getDevices() async {
@@ -270,15 +293,31 @@ class _YoloVideoState extends State<YoloVideo> {
         confThreshold: 0.4,
         classThreshold: 0.5);
     if (result.isNotEmpty) {
+      final String objectName = result[0]['tag'];
       setState(() {
         yoloResults = result;
-        detectedObject = result[0]['tag'];
+        detectedObject = objectName;
         print(detectedObject);
       });
+      _lastDetectionAt = DateTime.now();
+      if (objectName != _activeSpokenObject) {
+        await _speakImmediateObject(objectName);
+      }
     } else {
       setState(() {
         yoloResults.clear();
       });
+      if (_lastDetectionAt != null &&
+          DateTime.now().difference(_lastDetectionAt!) >
+              const Duration(seconds: 2)) {
+        detectedObject = '';
+        _activeSpokenObject = '';
+        _timer?.cancel();
+        _timer = null;
+        if (_isSpeakingEnabled) {
+          flutterTts.stop();
+        }
+      }
     }
   }
 
@@ -419,9 +458,13 @@ class _YoloVideoState extends State<YoloVideo> {
         setState(() {
           _isSpeakingEnabled = !_isSpeakingEnabled;
           if (_isSpeakingEnabled) {
-            _startSpeakingTimer();
+            if (detectedObject.isNotEmpty) {
+              _speakImmediateObject(detectedObject);
+            }
           } else {
             _timer?.cancel();
+            _timer = null;
+            _activeSpokenObject = '';
             flutterTts.stop();
           }
         });
