@@ -134,7 +134,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (!mounted) return;
       setState(() => _speaking = true);
       await _tts.speak(
-        'Bienvenido. Esta es la primera vez que abres Vision Guard. '
+        'Bienvenido. Esta es la primera vez que abres EcoVision. '
         'Primero escucharás estas instrucciones y luego entrarás a la cámara. '
         'Cuando ya estés dentro de la app, podrás usar el botón de micrófono para decir comandos como buscar seguido del objeto, silencio o instrucciones.',
       );
@@ -162,14 +162,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.visibility,
-                size: 88,
-                color: Color(0xFF00B4D8),
+              Center(
+                child: Image.asset(
+                  'assets/logoEcoVision.jpg',
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const Text(
-                'Vision Guard',
+                'EcoVision',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -306,14 +308,14 @@ class _YoloVideoState extends State<YoloVideo> {
           prefs.getBool(_onboardingCompletedKey) ?? false;
       if (!onboardingCompleted) {
         final onboardingText =
-            'Bienvenido a Vision Guard. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
+            'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
         if (_isSpeakingEnabled) await flutterTts.speak(onboardingText);
       }
     } catch (e) {
       // If prefs fail for any reason, fallback to previous behavior once
       if (!_onboardingPlayed) {
         final onboardingText =
-            'Bienvenido a Vision Guard. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
+            'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
         if (_isSpeakingEnabled) await flutterTts.speak(onboardingText);
         _onboardingPlayed = true;
       }
@@ -683,7 +685,11 @@ class _YoloVideoState extends State<YoloVideo> {
       return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('EcoVision'),
+          title: Image.asset(
+            'assets/logoEcoVision.jpg',
+            height: 34,
+            fit: BoxFit.contain,
+          ),
         ),
         body: Center(
           child: Text(_permissionError),
@@ -702,7 +708,11 @@ class _YoloVideoState extends State<YoloVideo> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('EcoVision'),
+        title: Image.asset(
+          'assets/logoEcoVision.jpg',
+          height: 34,
+          fit: BoxFit.contain,
+        ),
       ),
       body: Stack(
         children: [
