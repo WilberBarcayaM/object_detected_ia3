@@ -226,7 +226,7 @@ class _YoloVideoState extends State<YoloVideo> {
       return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('Sensor Ultrasónico'),
+          title: const Text('Vision Guard'),
         ),
         body: Center(
           child: Text(_permissionError),
@@ -245,7 +245,7 @@ class _YoloVideoState extends State<YoloVideo> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Sensor Ultrasónico'),
+        title: const Text('Vision Guard'),
       ),
       body: Stack(
         children: [
@@ -503,12 +503,27 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   Widget _ultrasonicDisplay() {
+    final String distanceText =
+        ultrasonicValue.isNotEmpty ? '$ultrasonicValue cm' : '—';
+    final String objectText = detectedObject.isNotEmpty ? detectedObject : '—';
     return ListTile(
       title: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: Text(
-          "Valor Ultrasónico: $ultrasonicValue cm",
-          style: const TextStyle(fontSize: 18.0),
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Objeto: $objectText',
+              style:
+                  const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Distancia: $distanceText',
+              style: const TextStyle(fontSize: 16.0),
+            ),
+          ],
         ),
       ),
     );
