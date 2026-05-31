@@ -19,7 +19,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: MyApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vision Guard'), findsOneWidget);
+    expect(find.text('EcoVision'), findsOneWidget);
     expect(find.text('Primera vez en la app'), findsOneWidget);
   });
 }

@@ -8,6 +8,7 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 //import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'dart:async';
 import 'package:flutter_vision/flutter_vision.dart';
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -275,9 +276,21 @@ class _YoloVideoState extends State<YoloVideo> {
   bool mostrarPanelMicrofono = false;
   late stt.SpeechToText _speech;
   bool _speechAvailable = false;
+  bool _isStartingListening = false;
+  Timer? _restartListeningTimer;
   String _lastRecognized = '';
   String _lastProcessedVoiceCommand = '';
   String objetoFiltrado = 'todos';
+  final Set<String> _supportedObjects = <String>{
+    'cama',
+    'grada',
+    'gradas',
+    'mesa',
+    'puerta',
+  };
+  final Map<String, String> _objectAliases = <String, String>{
+    'gradas': 'grada',
+  };
   bool _onboardingPlayed = false;
 
   @override
@@ -360,50 +373,58 @@ class _YoloVideoState extends State<YoloVideo> {
   void _handleSpeechStatus(String status) {
     if (!mostrarPanelMicrofono || _ttsInProgress) return;
     if (status == 'done' || status == 'notListening') {
-      Future.delayed(const Duration(milliseconds: 250), () {
-        if (mounted &&
-            mostrarPanelMicrofono &&
-            _speechAvailable &&
-            !_speech.isListening &&
-            !_ttsInProgress) {
-          _startListening();
-        }
-      });
+      _scheduleListeningRestart(const Duration(milliseconds: 250));
     }
   }
 
+  void _scheduleListeningRestart(Duration delay) {
+    _restartListeningTimer?.cancel();
+    _restartListeningTimer = Timer(delay, () {
+      if (!mounted) return;
+      _startListening();
+    });
+  }
+
   Future<void> _startListening() async {
-    if (!_speechAvailable) return;
+    if (!_speechAvailable || _ttsInProgress || !mostrarPanelMicrofono) return;
+    if (_isStartingListening || _speech.isListening) return;
+    _isStartingListening = true;
     _lastRecognized = '';
-    await _speech.listen(
-      onResult: (result) async {
-        final raw = result.recognizedWords;
-        final text = raw.toLowerCase();
-        final normalized = _normalizeText(text);
-        // show the live recognized (raw) text to the user but process the normalized form
-        setState(() => _lastRecognized = raw);
-        if (result.finalResult) {
-          print('STT final recognized (raw): "$raw" normalized: "$normalized"');
-          await _processVoiceCommand(normalized);
-        } else {
-          print('STT interim recognized: "$raw"');
-          if (_isCompleteVoiceCommand(normalized)) {
+    try {
+      await _speech.listen(
+        onResult: (result) async {
+          final raw = result.recognizedWords;
+          final text = raw.toLowerCase();
+          final normalized = _normalizeText(text);
+          // show the live recognized (raw) text to the user but process the normalized form
+          setState(() => _lastRecognized = raw);
+          if (result.finalResult) {
+            print(
+                'STT final recognized (raw): "$raw" normalized: "$normalized"');
             await _processVoiceCommand(normalized);
+          } else {
+            print('STT interim recognized: "$raw"');
+            if (_isCompleteVoiceCommand(normalized)) {
+              await _processVoiceCommand(normalized);
+            }
           }
-        }
-      },
-      localeId: 'es_ES',
-      cancelOnError: true,
-      listenFor: const Duration(minutes: 10),
-      pauseFor: const Duration(seconds: 5),
-      partialResults: true,
-      listenMode: stt.ListenMode.dictation,
-    );
+        },
+        localeId: 'es_ES',
+        cancelOnError: true,
+        listenFor: const Duration(minutes: 10),
+        pauseFor: const Duration(seconds: 5),
+        partialResults: true,
+        listenMode: stt.ListenMode.dictation,
+      );
+    } finally {
+      _isStartingListening = false;
+    }
     setState(() {});
   }
 
   Future<void> _stopListening() async {
     if (!_speechAvailable) return;
+    _restartListeningTimer?.cancel();
     await _speech.stop();
     setState(() {});
   }
@@ -420,6 +441,7 @@ class _YoloVideoState extends State<YoloVideo> {
       await _startListening();
     } else {
       // Closing mic panel: stop listening and resume detection
+      _restartListeningTimer?.cancel();
       try {
         await _stopListening();
       } catch (_) {}
@@ -448,36 +470,27 @@ class _YoloVideoState extends State<YoloVideo> {
         final parts = text.split('buscar');
         String candidate = parts.length > 1 ? parts[1].trim() : '';
         if (candidate.isNotEmpty) {
-          final obj = candidate.split(' ').first;
+          final obj = _canonicalObjectName(candidate.split(' ').first);
+          if (!_supportedObjects.contains(obj)) {
+            if (_isSpeakingEnabled) {
+              await _speakWithPause('Objeto aun no incluido');
+            }
+            return;
+          }
           setState(() => objetoFiltrado = obj);
-          if (_isSpeakingEnabled)
+          if (_isSpeakingEnabled) {
             await _speakWithPause('Buscando solamente $objetoFiltrado');
+          }
         }
       }
       return;
     }
 
-    if (text.contains('silencio') ||
-        text.contains('callar') ||
-        text.contains('detener')) {
-      setState(() {
-        _isSpeakingEnabled = false;
-        _timer?.cancel();
-      });
-      await _speakWithPause('Voces silenciadas');
-      return;
-    }
-
-    if (text.contains('activar voz') || text.contains('hablar')) {
-      setState(() => _isSpeakingEnabled = true);
-      if (detectedObject.isNotEmpty)
-        await _speakImmediateObject(detectedObject);
-      return;
-    }
+    // Note: voice-based enable/disable commands removed; use the center FAB
 
     if (text.contains('instrucciones') || text.contains('ayuda')) {
       final instructions =
-          'Control de voz activo. Di: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para apagar las voces, o instrucciones para escuchar este mensaje.';
+          'Control de voz activo. Di: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, o instrucciones para escuchar este mensaje.';
       if (_isSpeakingEnabled) await _speakWithPause(instructions);
       return;
     }
@@ -485,13 +498,15 @@ class _YoloVideoState extends State<YoloVideo> {
     _lastProcessedVoiceCommand = '';
   }
 
+  String _canonicalObjectName(String objectName) {
+    final normalized = _normalizeText(objectName);
+    return _objectAliases[normalized] ?? normalized;
+  }
+
   bool _isCompleteVoiceCommand(String text) {
     if (text.isEmpty) return false;
     if (text.contains('instrucciones') || text.contains('ayuda')) return true;
-    if (text.contains('silencio') ||
-        text.contains('callar') ||
-        text.contains('detener')) return true;
-    if (text.contains('activar voz') || text.contains('hablar')) return true;
+    // Removed voice enable/disable commands; only 'instrucciones' and 'buscar' remain
     if (text.startsWith('buscar ')) {
       return text.split(' ').length >= 2;
     }
@@ -579,11 +594,8 @@ class _YoloVideoState extends State<YoloVideo> {
       _lastProcessedVoiceCommand = '';
     }
     if (mostrarPanelMicrofono && _speechAvailable) {
-      // small delay to ensure TTS stream closed
-      await Future.delayed(const Duration(milliseconds: 300));
-      try {
-        await _startListening();
-      } catch (_) {}
+      // restart with a small delay to avoid racing with plugin status transitions
+      _scheduleListeningRestart(const Duration(milliseconds: 300));
     }
   }
 
@@ -667,9 +679,57 @@ class _YoloVideoState extends State<YoloVideo> {
     });
   }
 
+  Future<void> _setControlPanelVisible(bool visible) async {
+    if (visible == _showControlPanel) return;
+
+    if (visible) {
+      _restartListeningTimer?.cancel();
+      if (mostrarPanelMicrofono) {
+        setState(() {
+          mostrarPanelMicrofono = false;
+          _lastRecognized = '';
+        });
+      }
+      try {
+        await _stopListening();
+      } catch (_) {}
+
+      _timer?.cancel();
+      _timer = null;
+      _activeSpokenObject = '';
+      await flutterTts.stop();
+
+      try {
+        await stopDetection();
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _showControlPanel = true;
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _showControlPanel = false;
+    });
+
+    try {
+      if (isLoaded && !isDetecting) await startDetection();
+    } catch (_) {}
+
+    if (_isSpeakingEnabled &&
+        detectedObject.isNotEmpty &&
+        !mostrarPanelMicrofono) {
+      await _speakImmediateObject(detectedObject);
+    }
+  }
+
   @override
   void dispose() async {
     _timer?.cancel();
+    _restartListeningTimer?.cancel();
     flutterTts.stop();
     _connection?.dispose();
     try {
@@ -689,6 +749,7 @@ class _YoloVideoState extends State<YoloVideo> {
             'assets/logoEcoVision.jpg',
             height: 34,
             fit: BoxFit.contain,
+            semanticLabel: 'EcoVision',
           ),
         ),
         body: Center(
@@ -705,133 +766,223 @@ class _YoloVideoState extends State<YoloVideo> {
         ),
       );
     }
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Image.asset(
-          'assets/logoEcoVision.jpg',
-          height: 34,
-          fit: BoxFit.contain,
+    return PopScope(
+      canPop: !_showControlPanel && !mostrarPanelMicrofono,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        if (_showControlPanel) {
+          await _setControlPanelVisible(false);
+          return;
+        }
+        if (mostrarPanelMicrofono) {
+          await _toggleMic();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Image.asset(
+            'assets/logoEcoVision.jpg',
+            height: 34,
+            fit: BoxFit.contain,
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          // Base camera preview fills the screen
-          Positioned.fill(
-            child: CameraPreview(controller),
-          ),
-
-          // Detection boxes overlay
-          Positioned.fill(
-            child: Stack(
-              children: [
-                ...displayBoxesAroundRecognizedObjects(size),
-              ],
-            ),
-          ),
-
-          // If control panel requested, show it as bottom sheet
-          if (_showControlPanel)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: size.height * 0.4,
-              child: _buildControlPanel(),
+        body: Stack(
+          children: [
+            // Base camera preview fills the screen
+            Positioned.fill(
+              child: CameraPreview(controller),
             ),
 
-          // Microphone toggle FAB (bottom-left) for accessibility
-          // Settings FAB positioned above microphone FAB
-          if (!_showControlPanel)
-            Positioned(
-              left: 16,
-              bottom: 86,
-              child: FloatingActionButton(
-                heroTag: 'settingsFab',
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                onPressed: () {
-                  setState(() {
-                    _showControlPanel = true;
-                  });
-                },
-                child: const Icon(Icons.settings),
+            // Detection boxes overlay
+            Positioned.fill(
+              child: Stack(
+                children: [
+                  ...displayBoxesAroundRecognizedObjects(size),
+                ],
               ),
             ),
 
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              heroTag: 'micFab',
-              backgroundColor: const Color(0xFF00B4D8),
-              foregroundColor: Colors.white,
-              onPressed: () async {
-                await _toggleMic();
-              },
-              child: Icon(
-                mostrarPanelMicrofono ? Icons.close : Icons.mic,
-                color: Colors.white,
-              ),
-            ),
-          ),
+            // If control panel requested, show it as a full-screen overlay
+            if (_showControlPanel) Positioned.fill(child: _buildControlPanel()),
 
-          // Voice panel floating card above FAB
-          if (mostrarPanelMicrofono)
-            Positioned(
-              left: 16,
-              bottom: 86,
-              child: Material(
-                color: Colors.transparent,
-                child: Container(
-                  width: size.width * 0.9,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
-                    border:
-                        Border.all(color: const Color(0xFF00B4D8), width: 2),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.mic,
-                        size: 48,
-                        color: const Color(0xFF00B4D8),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              mostrarPanelMicrofono &&
-                                      _speechAvailable &&
-                                      _speech.isListening
-                                  ? 'Escuchando...'
-                                  : 'Control de voz activo. Di un comando: "Buscar [objeto]", "Silencio" o "Instrucciones".',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _lastRecognized.isNotEmpty
-                                  ? 'Último: $_lastRecognized'
-                                  : '',
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+            // Microphone toggle FAB (bottom-left) for accessibility
+            // Settings FAB positioned above microphone FAB
+            if (!_showControlPanel)
+              Positioned(
+                top: 16,
+                right: 16,
+                child: Semantics(
+                  button: true,
+                  label: 'Botón de ajustes',
+                  hint: 'Abre la pantalla de ajustes',
+                  child: FloatingActionButton(
+                    heroTag: 'settingsFab',
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    tooltip: 'Abrir ajustes',
+                    onPressed: () async {
+                      await _setControlPanelVisible(true);
+                    },
+                    child: const Icon(Icons.settings),
                   ),
                 ),
               ),
-            ),
-        ],
+
+            if (!_showControlPanel)
+              Positioned(
+                left: 16,
+                bottom: 16,
+                child: Semantics(
+                  button: true,
+                  label: 'Botón de micrófono',
+                  hint: mostrarPanelMicrofono
+                      ? 'Cierra el control de voz'
+                      : 'Abre el control de voz',
+                  child: FloatingActionButton(
+                    heroTag: 'micFab',
+                    backgroundColor: const Color(0xFF00B4D8),
+                    foregroundColor: Colors.white,
+                    tooltip: mostrarPanelMicrofono
+                        ? 'Cerrar control de voz'
+                        : 'Abrir control de voz',
+                    onPressed: () async {
+                      await _toggleMic();
+                    },
+                    child: Icon(
+                      mostrarPanelMicrofono ? Icons.close : Icons.mic,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+            // Central FAB to toggle spoken announcements on/off (extended with label)
+            if (!_showControlPanel)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 16,
+                child: Center(
+                  child: FloatingActionButton.extended(
+                    heroTag: 'speakFab',
+                    backgroundColor: const Color(0xFF00B4D8),
+                    foregroundColor: Colors.white,
+                    tooltip:
+                        _isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz',
+                    onPressed: () {
+                      setState(() {
+                        _isSpeakingEnabled = !_isSpeakingEnabled;
+                        if (_isSpeakingEnabled) {
+                          if (detectedObject.isNotEmpty) {
+                            _speakImmediateObject(detectedObject);
+                          }
+                        } else {
+                          _timer?.cancel();
+                          _timer = null;
+                          _activeSpokenObject = '';
+                          flutterTts.stop();
+                        }
+                      });
+                    },
+                    icon: Icon(_isSpeakingEnabled
+                        ? Icons.volume_up
+                        : Icons.volume_off),
+                    label: Text(
+                        _isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz'),
+                  ),
+                ),
+              ),
+
+            if (!_showControlPanel)
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: Semantics(
+                  button: true,
+                  label: 'Botón de salir',
+                  hint: 'Cierra la aplicación',
+                  child: FloatingActionButton(
+                    heroTag: 'exitFab',
+                    backgroundColor: const Color(0xFF00B4D8),
+                    foregroundColor: Colors.white,
+                    tooltip: 'Salir de la aplicación',
+                    onPressed: () {
+                      SystemNavigator.pop();
+                    },
+                    child: const Icon(Icons.exit_to_app),
+                  ),
+                ),
+              ),
+
+            // Voice panel floating card above FAB
+            if (mostrarPanelMicrofono)
+              Positioned(
+                left: 16,
+                bottom: 86,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Semantics(
+                    liveRegion: true,
+                    label: mostrarPanelMicrofono &&
+                            _speechAvailable &&
+                            _speech.isListening
+                        ? 'Control de voz escuchando'
+                        : 'Control de voz activo',
+                    value: _lastRecognized.isNotEmpty
+                        ? 'Último comando: $_lastRecognized'
+                        : 'Sin comando reconocido aún',
+                    child: Container(
+                      width: size.width * 0.9,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: const Color(0xFF00B4D8), width: 2),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.mic,
+                            size: 48,
+                            color: const Color(0xFF00B4D8),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  mostrarPanelMicrofono &&
+                                          _speechAvailable &&
+                                          _speech.isListening
+                                      ? 'Escuchando...'
+                                      : 'Control de voz activo. Di un comando: "Buscar [objeto]" o "Instrucciones".',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _lastRecognized.isNotEmpty
+                                      ? 'Último: $_lastRecognized'
+                                      : '',
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -839,47 +990,49 @@ class _YoloVideoState extends State<YoloVideo> {
   Widget _buildControlPanel() {
     return Container(
       color: Colors.grey.shade100,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: Colors.black12,
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    setState(() {
-                      _showControlPanel = false;
-                    });
-                  },
-                  icon: const Icon(Icons.arrow_downward),
-                ),
-                const Expanded(
-                  child: Text(
-                    'Controles',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
+      child: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: Colors.black12,
+              child: Row(
                 children: [
-                  _controlBT(),
-                  _infoDevice(),
-                  _listDevices(),
-                  _ultrasonicDisplay(),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: _toggleSpeakingButton(),
+                  IconButton(
+                    tooltip: 'Volver de ajustes',
+                    onPressed: () async {
+                      await _setControlPanelVisible(false);
+                    },
+                    icon: const Icon(Icons.arrow_back),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Ajustes',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _controlBT(),
+                    _infoDevice(),
+                    _listDevices(),
+                    _ultrasonicDisplay(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: const SizedBox(height: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -897,6 +1050,7 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   Future<void> yoloOnFrame(CameraImage cameraImage) async {
+    if (!isDetecting || _showControlPanel) return;
     final result = await widget.vision.yoloOnFrame(
         bytesList: cameraImage.planes.map((plane) => plane.bytes).toList(),
         imageHeight: cameraImage.height,
@@ -904,18 +1058,33 @@ class _YoloVideoState extends State<YoloVideo> {
         iouThreshold: 0.4,
         confThreshold: 0.4,
         classThreshold: 0.5);
+    if (!mounted || !isDetecting || _showControlPanel) return;
     if (result.isNotEmpty) {
-      final String objectName = result[0]['tag'];
+      final String selectedFilter = _canonicalObjectName(objetoFiltrado);
+      final Map<String, dynamic> selectedResult = selectedFilter == 'todos'
+          ? result.first
+          : result.cast<Map<String, dynamic>>().firstWhere(
+                (r) =>
+                    _canonicalObjectName(r['tag'].toString()) == selectedFilter,
+                orElse: () => <String, dynamic>{},
+              );
+      final bool hasTarget = selectedResult.isNotEmpty;
+      final String objectName =
+          hasTarget ? selectedResult['tag'].toString() : '';
       setState(() {
         yoloResults = result;
         detectedObject = objectName;
         print(detectedObject);
       });
       _lastDetectionAt = DateTime.now();
-      if (objectName != _activeSpokenObject) {
+      if (objectName.isNotEmpty && objectName != _activeSpokenObject) {
         if (!_ttsInProgress && !mostrarPanelMicrofono) {
           await _speakImmediateObject(objectName);
         }
+      } else if (objectName.isEmpty) {
+        _activeSpokenObject = '';
+        _timer?.cancel();
+        _timer = null;
       }
     } else {
       setState(() {
@@ -943,7 +1112,7 @@ class _YoloVideoState extends State<YoloVideo> {
       return;
     }
     await controller.startImageStream((image) async {
-      if (isDetecting) {
+      if (isDetecting && !_showControlPanel) {
         cameraImage = image;
         await yoloOnFrame(image);
       }
@@ -951,9 +1120,17 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   Future<void> stopDetection() async {
+    try {
+      if (controller.value.isStreamingImages) {
+        await controller.stopImageStream();
+      }
+    } catch (_) {}
+
     setState(() {
       isDetecting = false;
       yoloResults.clear();
+      detectedObject = '';
+      _lastDetectionAt = null;
     });
   }
 
@@ -1082,7 +1259,7 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   Widget _toggleSpeakingButton() {
-    return ElevatedButton(
+    return ElevatedButton.icon(
       onPressed: () {
         setState(() {
           _isSpeakingEnabled = !_isSpeakingEnabled;
@@ -1098,7 +1275,11 @@ class _YoloVideoState extends State<YoloVideo> {
           }
         });
       },
-      child: Text(_isSpeakingEnabled ? "Desactivar voz" : "Activar voz"),
+      icon: Icon(
+        _isSpeakingEnabled ? Icons.volume_off : Icons.volume_up,
+        size: 20,
+      ),
+      label: Text(_isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz'),
     );
   }
 }
