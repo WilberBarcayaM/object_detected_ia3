@@ -226,7 +226,7 @@ class _YoloVideoState extends State<YoloVideo> {
       return Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title: const Text('Vision Guard'),
+          title: const Text('EcoVision'),
         ),
         body: Center(
           child: Text(_permissionError),
@@ -245,7 +245,7 @@ class _YoloVideoState extends State<YoloVideo> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Vision Guard'),
+        title: const Text('EcoVision'),
       ),
       body: Stack(
         children: [
