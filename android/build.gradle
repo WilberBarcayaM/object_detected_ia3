@@ -1,7 +1,49 @@
+buildscript {
+    ext.kotlin_version = '1.7.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+}
+
+// Provide a minimal `flutter` ext map for plugins that reference `flutter.compileSdkVersion`
+ext.flutter = [compileSdkVersion: 34, ndkVersion: '21.4.7075529']
+
+// Force Kotlin dependency version for subprojects that declare older versions
+subprojects {
+    configurations.all {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.jetbrains.kotlin') {
+                details.useVersion '1.7.10'
+            }
+        }
+    }
+}
+
+// Ensure any Android library module has a compileSdkVersion if missing
+subprojects {
+    afterEvaluate { project ->
+        try {
+            def hasAndroid = project.plugins.hasPlugin('com.android.library') || project.plugins.hasPlugin('com.android.application')
+            if (hasAndroid) {
+                def androidExt = project.extensions.findByName('android')
+                if (androidExt != null) {
+                    if (!androidExt.hasProperty('compileSdkVersion') || androidExt.compileSdkVersion == null) {
+                        androidExt.compileSdkVersion = 34
+                    }
+                }
+            }
+        } catch (ignored) {}
     }
 }
 
