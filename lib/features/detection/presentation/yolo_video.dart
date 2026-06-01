@@ -232,6 +232,7 @@ class _YoloVideoState extends State<YoloVideo> {
         if (_ttsService.isSpeakingEnabled) {
           await _speakWithPause('Detectando todos los objetos');
         }
+        await _toggleMic();
       } else {
         final parts = text.split('buscar');
         String candidate = parts.length > 1 ? parts[1].trim() : '';
@@ -248,6 +249,7 @@ class _YoloVideoState extends State<YoloVideo> {
           if (_ttsService.isSpeakingEnabled) {
             await _speakWithPause('Buscando solamente $objetoFiltrado');
           }
+          await _toggleMic();
         }
       }
       return;
@@ -475,10 +477,13 @@ class _YoloVideoState extends State<YoloVideo> {
                 bottom: 16,
                 child: Semantics(
                   button: true,
-                  label: 'Botón de micrófono',
-                  hint: mostrarPanelMicrofono
-                      ? 'Cierra el control de voz'
-                      : 'Abre el control de voz',
+                  excludeSemantics: true,
+                  label: mostrarPanelMicrofono
+                      ? 'Cerrar control de voz'
+                      : 'Abrir control de voz',
+                  hint: 'Toca dos veces para ' +
+                      (mostrarPanelMicrofono ? 'cerrar' : 'abrir') +
+                      ' el panel de micrófono y control de voz',
                   child: FloatingActionButton(
                     heroTag: 'micFab',
                     backgroundColor: const Color(0xFF00B4D8),
@@ -502,34 +507,46 @@ class _YoloVideoState extends State<YoloVideo> {
                 right: 0,
                 bottom: 16,
                 child: Center(
-                  child: FloatingActionButton.extended(
-                    heroTag: 'speakFab',
-                    backgroundColor: const Color(0xFF00B4D8),
-                    foregroundColor: Colors.white,
-                    tooltip: _ttsService.isSpeakingEnabled
+                  child: Semantics(
+                    button: true,
+                    excludeSemantics: true,
+                    label: _ttsService.isSpeakingEnabled
                         ? 'Desactivar voz'
                         : 'Activar voz',
-                    onPressed: () {
-                      setState(() {
-                        _ttsService.isSpeakingEnabled =
-                            !_ttsService.isSpeakingEnabled;
-                        if (_ttsService.isSpeakingEnabled) {
-                          if (detectedObject.isNotEmpty) {
-                            _speakImmediateObject(detectedObject);
+                    hint: 'Toca dos veces para ' +
+                        (_ttsService.isSpeakingEnabled
+                            ? 'silenciar'
+                            : 'activar') +
+                        ' la lectura de voz de objetos detectados',
+                    child: FloatingActionButton.extended(
+                      heroTag: 'speakFab',
+                      backgroundColor: const Color(0xFF00B4D8),
+                      foregroundColor: Colors.white,
+                      tooltip: _ttsService.isSpeakingEnabled
+                          ? 'Desactivar voz'
+                          : 'Activar voz',
+                      onPressed: () {
+                        setState(() {
+                          _ttsService.isSpeakingEnabled =
+                              !_ttsService.isSpeakingEnabled;
+                          if (_ttsService.isSpeakingEnabled) {
+                            if (detectedObject.isNotEmpty) {
+                              _speakImmediateObject(detectedObject);
+                            }
+                          } else {
+                            _ttsService.cancelTimer();
+                            _ttsService.resetActiveObject();
+                            _ttsService.stop();
                           }
-                        } else {
-                          _ttsService.cancelTimer();
-                          _ttsService.resetActiveObject();
-                          _ttsService.stop();
-                        }
-                      });
-                    },
-                    icon: Icon(_ttsService.isSpeakingEnabled
-                        ? Icons.volume_up
-                        : Icons.volume_off),
-                    label: Text(_ttsService.isSpeakingEnabled
-                        ? 'Desactivar voz'
-                        : 'Activar voz'),
+                        });
+                      },
+                      icon: Icon(_ttsService.isSpeakingEnabled
+                          ? Icons.volume_up
+                          : Icons.volume_off),
+                      label: Text(_ttsService.isSpeakingEnabled
+                          ? 'Desactivar voz'
+                          : 'Activar voz'),
+                    ),
                   ),
                 ),
               ),
@@ -539,8 +556,9 @@ class _YoloVideoState extends State<YoloVideo> {
                 bottom: 16,
                 child: Semantics(
                   button: true,
-                  label: 'Botón de ajustes',
-                  hint: 'Abre la pantalla de ajustes',
+                  excludeSemantics: true,
+                  label: 'Ajustes',
+                  hint: 'Toca dos veces para abrir la pantalla de ajustes y configuración de Bluetooth',
                   child: FloatingActionButton(
                     heroTag: 'settingsFab',
                     backgroundColor: const Color(0xFF00B4D8),

@@ -99,12 +99,15 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                       icon: const Icon(Icons.arrow_back, color: Colors.black87),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
                   ],

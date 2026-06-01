@@ -25,37 +25,39 @@ class BoundingBoxesOverlay extends StatelessWidget {
 
     Color colorPick = const Color.fromARGB(255, 50, 233, 30);
 
-    return Stack(
-      children: yoloResults.map((result) {
-        final box = result["box"];
-        if (box == null || box.length < 5) return const SizedBox.shrink();
+    return ExcludeSemantics(
+      child: Stack(
+        children: yoloResults.map((result) {
+          final box = result["box"];
+          if (box == null || box.length < 5) return const SizedBox.shrink();
 
-        double left = box[0] * factorX;
-        double top = box[1] * factorY;
-        double width = (box[2] - box[0]) * factorX;
-        double height = (box[3] - box[1]) * factorY;
+          double left = box[0] * factorX;
+          double top = box[1] * factorY;
+          double width = (box[2] - box[0]) * factorX;
+          double height = (box[3] - box[1]) * factorY;
 
-        return Positioned(
-          left: left,
-          top: top,
-          width: width,
-          height: height,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-              border: Border.all(color: Colors.pink, width: 2.0),
-            ),
-            child: Text(
-              "${result['tag']} ${(box[4] * 100).toStringAsFixed(0)}%",
-              style: TextStyle(
-                background: Paint()..color = colorPick,
-                color: Colors.white,
-                fontSize: 18.0,
+          return Positioned(
+            left: left,
+            top: top,
+            width: width,
+            height: height,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                border: Border.all(color: Colors.pink, width: 2.0),
+              ),
+              child: Text(
+                "${result['tag']} ${(box[4] * 100).toStringAsFixed(0)}%",
+                style: TextStyle(
+                  background: Paint()..color = colorPick,
+                  color: Colors.white,
+                  fontSize: 18.0,
+                ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 }

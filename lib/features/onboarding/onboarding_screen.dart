@@ -42,9 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _repeatInstructions() async {
-    if (_speaking) {
-      await _tts.stop();
-    }
+    await _tts.stop();
     await _playInstructions();
   }
 
@@ -75,26 +73,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           'assets/logoEcoVision.jpg',
                           height: 180,
                           fit: BoxFit.contain,
+                          semanticLabel: 'Logo de EcoVision',
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'EcoVision',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                      Semantics(
+                        header: true,
+                        child: const Text(
+                          'EcoVision',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Primera vez en la app',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFF00B4D8),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
+                      Semantics(
+                        header: true,
+                        child: const Text(
+                          'Primera vez en la app',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xFF00B4D8),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -118,14 +123,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      if (_speaking)
-                        const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF00B4D8),
-                          ),
-                        )
-                      else ...[
-                        ElevatedButton(
+                      Semantics(
+                        button: true,
+                        label: 'Repetir instrucciones de voz',
+                        hint: 'Vuelve a reproducir las instrucciones de audio de la aplicación',
+                        child: ElevatedButton(
                           onPressed: _repeatInstructions,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black,
@@ -140,9 +142,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
+                      ),
+                      const SizedBox(height: 12),
+                      Semantics(
+                        button: true,
+                        label: 'Continuar a la cámara principal',
+                        hint: 'Cierra las instrucciones e inicia el detector de objetos',
+                        child: ElevatedButton(
                           onPressed: () async {
+                            await _tts.stop();
                             await widget.onContinue();
                           },
                           style: ElevatedButton.styleFrom(
@@ -156,7 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
