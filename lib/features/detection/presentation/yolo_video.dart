@@ -288,9 +288,26 @@ class _YoloVideoState extends State<YoloVideo> {
   String _buildSpokenPhrase(String objectName) {
     final bool hasDistance =
         _bluetoothService.isConnected && ultrasonicValue.isNotEmpty;
-    return hasDistance
-        ? '$objectName a $ultrasonicValue centímetros'
-        : objectName;
+    if (!hasDistance) return objectName;
+
+    final int? cm = int.tryParse(ultrasonicValue);
+    if (cm == null) return '$objectName a $ultrasonicValue centímetros';
+
+    if (cm < 100) {
+      final String cmText = cm == 1 ? '1 centímetro' : '$cm centímetros';
+      return '$objectName a $cmText';
+    } else {
+      final int meters = cm ~/ 100;
+      final int remainingCm = cm % 100;
+
+      final String metersText = meters == 1 ? '1 metro' : '$meters metros';
+      if (remainingCm == 0) {
+        return '$objectName a $metersText';
+      } else {
+        final String cmText = remainingCm == 1 ? '1 centímetro' : '$remainingCm centímetros';
+        return '$objectName a $metersText con $cmText';
+      }
+    }
   }
 
   Future<void> _speakImmediateObject(String objectName) async {
