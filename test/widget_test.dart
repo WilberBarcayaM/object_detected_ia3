@@ -5,18 +5,17 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:reconocimiento/main.dart';
+import 'package:reconocimiento/app/app.dart';
 
 void main() {
   testWidgets('Shows onboarding screen on first launch',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
 
-    await tester.pumpWidget(const MaterialApp(home: MyApp()));
+    await tester.pumpWidget(const EcoVisionApp());
     await tester.pumpAndSettle();
 
     expect(find.text('EcoVision'), findsOneWidget);
