@@ -83,20 +83,30 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Row(
                   children: [
-                    IconButton(
-                      tooltip: _currentSubView == SettingsSubView.main
+                    Semantics(
+                      button: true,
+                      excludeSemantics: true,
+                      label: _currentSubView == SettingsSubView.main
                           ? 'Volver a la cámara'
                           : 'Volver a Ajustes',
-                      onPressed: () {
-                        if (_currentSubView == SettingsSubView.main) {
-                          widget.onBackPressed();
-                        } else {
-                          setState(() {
-                            _currentSubView = SettingsSubView.main;
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                      hint: _currentSubView == SettingsSubView.main
+                          ? 'Toca dos veces para regresar a la pantalla principal de la cámara'
+                          : 'Toca dos veces para regresar a la pantalla principal de ajustes',
+                      child: IconButton(
+                        tooltip: _currentSubView == SettingsSubView.main
+                            ? 'Volver a la cámara'
+                            : 'Volver a Ajustes',
+                        onPressed: () {
+                          if (_currentSubView == SettingsSubView.main) {
+                            widget.onBackPressed();
+                          } else {
+                            setState(() {
+                              _currentSubView = SettingsSubView.main;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Semantics(
