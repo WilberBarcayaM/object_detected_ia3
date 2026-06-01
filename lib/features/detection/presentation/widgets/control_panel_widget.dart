@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
 enum SettingsSubView {
@@ -7,6 +8,8 @@ enum SettingsSubView {
   objetos,
   sensorState,
   faq,
+  armado,
+  codigoArduino,
 }
 
 class ControlPanelWidget extends StatefulWidget {
@@ -70,6 +73,12 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
       case SettingsSubView.faq:
         title = 'Preguntas frecuentes';
         break;
+      case SettingsSubView.armado:
+        title = 'Guía de armado';
+        break;
+      case SettingsSubView.codigoArduino:
+        title = 'Código de Arduino';
+        break;
     }
 
     return Container(
@@ -97,6 +106,10 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                       onTap: () {
                         if (_currentSubView == SettingsSubView.main) {
                           widget.onBackPressed();
+                        } else if (_currentSubView == SettingsSubView.codigoArduino) {
+                          setState(() {
+                            _currentSubView = SettingsSubView.armado;
+                          });
                         } else {
                           setState(() {
                             _currentSubView = SettingsSubView.main;
@@ -106,10 +119,16 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                       child: IconButton(
                         tooltip: _currentSubView == SettingsSubView.main
                             ? 'Volver a la cámara'
-                            : 'Volver a Ajustes',
+                            : (_currentSubView == SettingsSubView.codigoArduino
+                                ? 'Volver a Guía de armado'
+                                : 'Volver a Ajustes'),
                         onPressed: () {
                           if (_currentSubView == SettingsSubView.main) {
                             widget.onBackPressed();
+                          } else if (_currentSubView == SettingsSubView.codigoArduino) {
+                            setState(() {
+                              _currentSubView = SettingsSubView.armado;
+                            });
                           } else {
                             setState(() {
                               _currentSubView = SettingsSubView.main;
@@ -157,6 +176,10 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
         return _buildSensorStateView();
       case SettingsSubView.faq:
         return _buildFaqView();
+      case SettingsSubView.armado:
+        return _buildArmadoView();
+      case SettingsSubView.codigoArduino:
+        return _buildCodigoArduinoView();
     }
   }
 
@@ -194,6 +217,15 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             },
           ),
           _buildMainOptionTile(
+            title: 'Guía de armado',
+            icon: Icons.build,
+            onTap: () {
+              setState(() {
+                _currentSubView = SettingsSubView.armado;
+              });
+            },
+          ),
+          _buildMainOptionTile(
             title: 'Preguntas frecuentes',
             icon: Icons.help_outline,
             onTap: () {
@@ -201,6 +233,272 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                 _currentSubView = SettingsSubView.faq;
               });
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArmadoView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader('1. Componentes requeridos'),
+          _buildBulletItem('Placa Arduino Uno.'),
+          _buildBulletItem('Sensor ultrasónico HC-SR04.'),
+          _buildBulletItem('Módulo Bluetooth HC-05.'),
+          _buildBulletItem('Protoboard pequeña.'),
+          _buildBulletItem('Cables de conexión (Jumpers).'),
+          _buildBulletItem('Batería de 9V (con conector Jack para Arduino).'),
+          const SizedBox(height: 16),
+          
+          _buildSectionHeader('2. Distribución de energía (5V)'),
+          _buildInstructionStep(
+            'Paso 1: Alimentación protoboard',
+            'Conecta un cable desde el único pin de 5V del Arduino al riel positivo (línea roja con el símbolo +) de la protoboard.',
+          ),
+          _buildInstructionStep(
+            'Paso 2: Módulo Bluetooth VCC',
+            'Conecta el pin VCC del módulo Bluetooth HC-05 a cualquier pin del riel positivo + de la protoboard.',
+          ),
+          _buildInstructionStep(
+            'Paso 3: Sensor Ultrasónico VCC',
+            'Conecta el pin VCC del sensor ultrasónico a cualquier pin del riel positivo + de la protoboard.',
+          ),
+          const SizedBox(height: 16),
+
+          _buildSectionHeader('3. Conexiones a tierra (GND)'),
+          _buildInstructionStep(
+            'Paso 4: Bluetooth GND',
+            'Conecta el pin GND del módulo Bluetooth HC-05 directamente a uno de los pines GND del Arduino.',
+          ),
+          _buildInstructionStep(
+            'Paso 5: Sensor Ultrasónico GND',
+            'Conecta el pin GND del sensor ultrasónico directamente a otro de los pines GND del Arduino.',
+          ),
+          const SizedBox(height: 16),
+
+          _buildSectionHeader('4. Conexiones de datos'),
+          _buildInstructionStep(
+            'Paso 6: Bluetooth TX/RX',
+            'Conecta el pin TXD del módulo Bluetooth al pin digital 2 del Arduino. Conecta el pin RXD del módulo al pin digital 3 del Arduino.',
+          ),
+          _buildInstructionStep(
+            'Paso 7: Sensor Trig/Echo',
+            'Conecta el pin Trig del sensor al pin digital 5 del Arduino. Conecta el pin Echo del sensor al pin digital 6 del Arduino.',
+          ),
+          const SizedBox(height: 16),
+
+          _buildSectionHeader('5. Montaje y uso portátil'),
+          _buildInstructionStep(
+            'Paso 8: Alimentación',
+            'Conecta la batería de 9V al Jack de alimentación del Arduino para que funcione de forma autónoma.',
+          ),
+          _buildInstructionStep(
+            'Paso 9: Acople al teléfono',
+            'Introduce el circuito en una caja plástica (dejando el sensor descubierto al frente) y ajústala en la parte superior del celular apuntando al frente, alineado con la cámara trasera.',
+          ),
+          const SizedBox(height: 16),
+
+          _buildSectionHeader('6. Código de programación'),
+          _buildInstructionStep(
+            'Código de Arduino',
+            'El código de Arduino que debes subir a tu placa se encuentra disponible en el repositorio de GitHub de este proyecto (carpeta arduino/eco_vision_sensor/). Puedes visualizarlo aquí y copiarlo a tu portapapeles tocando el botón de abajo:',
+          ),
+          const SizedBox(height: 12),
+          Semantics(
+            button: true,
+            excludeSemantics: true,
+            label: 'Ver código de Arduino',
+            hint: 'Toca dos veces para ver el código fuente que se debe cargar en la placa Arduino',
+            onTap: () {
+              setState(() {
+                _currentSubView = SettingsSubView.codigoArduino;
+              });
+            },
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00B4D8),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                setState(() {
+                  _currentSubView = SettingsSubView.codigoArduino;
+                });
+              },
+              icon: const Icon(Icons.code),
+              label: const Text('Ver código de Arduino'),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCodigoArduinoView() {
+    const String arduinoCode = '''#include <SoftwareSerial.h>
+#include <Ultrasonic.h>
+
+// Definir pines para el sensor ultrasónico (Trig, Echo)
+Ultrasonic sensor(5, 6);
+
+// Definir pines para SoftwareSerial (Arduino RX, Arduino TX)
+SoftwareSerial bt(2, 3); // Pin 2 al TX del HC-05, Pin 3 al RX del HC-05
+
+void setup() {
+  Serial.begin(9600);
+  bt.begin(9600);
+  Serial.println("Setup completo. Comenzando mediciones...");
+  bt.println("Setup completo. Comenzando mediciones...");
+}
+
+void loop() {
+  int distancia = sensor.read();
+
+  if (distancia > 0 && distancia < 350) {
+    bt.println(distancia);
+    Serial.println("Distancia: " + String(distancia) + " cm");
+  } else {
+    Serial.println("Distancia fuera de rango");
+  }
+
+  delay(200);
+}''';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Puedes copiar este código al portapapeles de tu celular para transferirlo a tu computadora o IDE de Arduino:',
+            style: TextStyle(color: Colors.black87, fontSize: 14.5),
+          ),
+          const SizedBox(height: 12),
+          Semantics(
+            button: true,
+            excludeSemantics: true,
+            label: 'Copiar código de Arduino',
+            hint: 'Toca dos veces para copiar el código de programación en el portapapeles de tu celular',
+            onTap: () async {
+              await Clipboard.setData(const ClipboardData(text: arduinoCode));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Código copiado al portapapeles'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00B4D8),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                await Clipboard.setData(const ClipboardData(text: arduinoCode));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Código copiado al portapapeles'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('Copiar código'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8.0),
+              border: Border.all(color: Colors.black12, width: 0.5),
+            ),
+            child: const SelectableText(
+              arduinoCode,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 13.0,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Semantics(
+        header: true,
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF00B4D8),
+            fontSize: 18.0,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBulletItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(color: Colors.black87, fontSize: 16)),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: Colors.black87, fontSize: 15.0),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionStep(String stepTitle, String description) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            stepTitle,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              fontSize: 15.0,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            description,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontSize: 14.5,
+              height: 1.3,
+            ),
           ),
         ],
       ),
