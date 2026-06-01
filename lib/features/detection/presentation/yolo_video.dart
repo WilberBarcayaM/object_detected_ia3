@@ -419,6 +419,29 @@ class _YoloVideoState extends State<YoloVideo> {
                 cameraImageWidth: cameraImage?.width ?? 0,
               ),
             ),
+            if (!_showControlPanel && _bluetoothService.isConnected && ultrasonicValue.isNotEmpty)
+              Positioned(
+                top: 16,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Distancia: $ultrasonicValue cm',
+                      style: const TextStyle(
+                        color: Color(0xFF00B4D8),
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (!_showControlPanel)
               Positioned(
                 top: 16,
