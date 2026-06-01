@@ -704,34 +704,8 @@ void loop() {
   Widget _buildSensorStateView() {
     final String distanceText =
         widget.ultrasonicValue.isNotEmpty ? '${widget.ultrasonicValue} cm' : '—';
-    final String objectText = widget.detectedObject.isNotEmpty ? widget.detectedObject : '—';
     return Column(
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(
-              bottom: BorderSide(
-                color: Colors.black12,
-                width: 0.5,
-              ),
-            ),
-          ),
-          child: ListTile(
-            leading: const Icon(
-              Icons.visibility,
-              color: Colors.black54,
-            ),
-            title: Text(
-              'Objeto detectado: $objectText',
-              style: const TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-            ),
-          ),
-        ),
         Container(
           decoration: const BoxDecoration(
             color: Colors.white,
