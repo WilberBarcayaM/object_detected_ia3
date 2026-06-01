@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -81,13 +80,17 @@ class _YoloVideoState extends State<YoloVideo> {
       if (!onboardingCompleted) {
         const onboardingText =
             'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, o instrucciones para escuchar este mensaje de ayuda.';
-        if (_ttsService.isSpeakingEnabled) await _ttsService.speak(onboardingText);
+        if (_ttsService.isSpeakingEnabled) {
+          await _ttsService.speak(onboardingText);
+        }
       }
     } catch (e) {
       if (!_onboardingPlayed) {
         const onboardingText =
             'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, o instrucciones para escuchar este mensaje de ayuda.';
-        if (_ttsService.isSpeakingEnabled) await _ttsService.speak(onboardingText);
+        if (_ttsService.isSpeakingEnabled) {
+          await _ttsService.speak(onboardingText);
+        }
         _onboardingPlayed = true;
       }
     }
@@ -233,7 +236,8 @@ class _YoloVideoState extends State<YoloVideo> {
         final parts = text.split('buscar');
         String candidate = parts.length > 1 ? parts[1].trim() : '';
         if (candidate.isNotEmpty) {
-          final obj = VoiceCommandProcessor.canonicalObjectName(candidate.split(' ').first);
+          final obj = VoiceCommandProcessor.canonicalObjectName(
+              candidate.split(' ').first);
           if (!VoiceCommandProcessor.supportedObjects.contains(obj)) {
             if (_ttsService.isSpeakingEnabled) {
               await _speakWithPause('Objeto aun no incluido');
@@ -261,7 +265,8 @@ class _YoloVideoState extends State<YoloVideo> {
 
   Future<void> _speakWithPause(String phrase) async {
     if (phrase.isEmpty) return;
-    final bool wasListening = _sttService.speechAvailable && _sttService.isListening;
+    final bool wasListening =
+        _sttService.speechAvailable && _sttService.isListening;
     _ttsService.ttsInProgress = true;
     if (wasListening) {
       try {
@@ -304,7 +309,8 @@ class _YoloVideoState extends State<YoloVideo> {
       if (remainingCm == 0) {
         return '$objectName a $metersText';
       } else {
-        final String cmText = remainingCm == 1 ? '1 centímetro' : '$remainingCm centímetros';
+        final String cmText =
+            remainingCm == 1 ? '1 centímetro' : '$remainingCm centímetros';
         return '$objectName a $metersText con $cmText';
       }
     }
@@ -436,14 +442,17 @@ class _YoloVideoState extends State<YoloVideo> {
                 cameraImageWidth: cameraImage?.width ?? 0,
               ),
             ),
-            if (!_showControlPanel && _bluetoothService.isConnected && ultrasonicValue.isNotEmpty)
+            if (!_showControlPanel &&
+                _bluetoothService.isConnected &&
+                ultrasonicValue.isNotEmpty)
               Positioned(
                 top: 16,
                 left: 0,
                 right: 0,
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(20),
@@ -459,26 +468,7 @@ class _YoloVideoState extends State<YoloVideo> {
                   ),
                 ),
               ),
-            if (!_showControlPanel)
-              Positioned(
-                top: 16,
-                right: 16,
-                child: Semantics(
-                  button: true,
-                  label: 'Botón de ajustes',
-                  hint: 'Abre la pantalla de ajustes',
-                  child: FloatingActionButton(
-                    heroTag: 'settingsFab',
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    tooltip: 'Abrir ajustes',
-                    onPressed: () async {
-                      await _setControlPanelVisible(true);
-                    },
-                    child: const Icon(Icons.settings),
-                  ),
-                ),
-              ),
+
             if (!_showControlPanel)
               Positioned(
                 left: 16,
@@ -516,11 +506,13 @@ class _YoloVideoState extends State<YoloVideo> {
                     heroTag: 'speakFab',
                     backgroundColor: const Color(0xFF00B4D8),
                     foregroundColor: Colors.white,
-                    tooltip:
-                        _ttsService.isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz',
+                    tooltip: _ttsService.isSpeakingEnabled
+                        ? 'Desactivar voz'
+                        : 'Activar voz',
                     onPressed: () {
                       setState(() {
-                        _ttsService.isSpeakingEnabled = !_ttsService.isSpeakingEnabled;
+                        _ttsService.isSpeakingEnabled =
+                            !_ttsService.isSpeakingEnabled;
                         if (_ttsService.isSpeakingEnabled) {
                           if (detectedObject.isNotEmpty) {
                             _speakImmediateObject(detectedObject);
@@ -535,8 +527,9 @@ class _YoloVideoState extends State<YoloVideo> {
                     icon: Icon(_ttsService.isSpeakingEnabled
                         ? Icons.volume_up
                         : Icons.volume_off),
-                    label: Text(
-                        _ttsService.isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz'),
+                    label: Text(_ttsService.isSpeakingEnabled
+                        ? 'Desactivar voz'
+                        : 'Activar voz'),
                   ),
                 ),
               ),
@@ -546,17 +539,17 @@ class _YoloVideoState extends State<YoloVideo> {
                 bottom: 16,
                 child: Semantics(
                   button: true,
-                  label: 'Botón de salir',
-                  hint: 'Cierra la aplicación',
+                  label: 'Botón de ajustes',
+                  hint: 'Abre la pantalla de ajustes',
                   child: FloatingActionButton(
-                    heroTag: 'exitFab',
+                    heroTag: 'settingsFab',
                     backgroundColor: const Color(0xFF00B4D8),
                     foregroundColor: Colors.white,
-                    tooltip: 'Salir de la aplicación',
-                    onPressed: () {
-                      SystemNavigator.pop();
+                    tooltip: 'Abrir ajustes',
+                    onPressed: () async {
+                      await _setControlPanelVisible(true);
                     },
-                    child: const Icon(Icons.exit_to_app),
+                    child: const Icon(Icons.settings, color: Colors.white),
                   ),
                 ),
               ),
@@ -648,12 +641,15 @@ class _YoloVideoState extends State<YoloVideo> {
         classThreshold: 0.5);
     if (!mounted || !isDetecting || _showControlPanel) return;
     if (result.isNotEmpty) {
-      final String selectedFilter = VoiceCommandProcessor.canonicalObjectName(objetoFiltrado);
+      final String selectedFilter =
+          VoiceCommandProcessor.canonicalObjectName(objetoFiltrado);
       final Map<String, dynamic> selectedResult = selectedFilter == 'todos'
           ? result.first
           : result.cast<Map<String, dynamic>>().firstWhere(
                 (r) =>
-                    VoiceCommandProcessor.canonicalObjectName(r['tag'].toString()) == selectedFilter,
+                    VoiceCommandProcessor.canonicalObjectName(
+                        r['tag'].toString()) ==
+                    selectedFilter,
                 orElse: () => <String, dynamic>{},
               );
       final bool hasTarget = selectedResult.isNotEmpty;
@@ -665,7 +661,8 @@ class _YoloVideoState extends State<YoloVideo> {
         print(detectedObject);
       });
       _lastDetectionAt = DateTime.now();
-      if (objectName.isNotEmpty && objectName != _ttsService.activeSpokenObject) {
+      if (objectName.isNotEmpty &&
+          objectName != _ttsService.activeSpokenObject) {
         if (!_ttsService.ttsInProgress && !mostrarPanelMicrofono) {
           await _speakImmediateObject(objectName);
         }
@@ -683,7 +680,9 @@ class _YoloVideoState extends State<YoloVideo> {
         detectedObject = '';
         _ttsService.resetActiveObject();
         _ttsService.cancelTimer();
-        if (_ttsService.isSpeakingEnabled && !_ttsService.ttsInProgress && !mostrarPanelMicrofono) {
+        if (_ttsService.isSpeakingEnabled &&
+            !_ttsService.ttsInProgress &&
+            !mostrarPanelMicrofono) {
           _ttsService.stop();
         }
       }
