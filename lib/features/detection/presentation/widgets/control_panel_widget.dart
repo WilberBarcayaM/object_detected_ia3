@@ -84,14 +84,9 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                 child: Row(
                   children: [
                     Semantics(
-                      button: true,
-                      excludeSemantics: true,
                       label: _currentSubView == SettingsSubView.main
                           ? 'Volver a la cámara'
                           : 'Volver a Ajustes',
-                      hint: _currentSubView == SettingsSubView.main
-                          ? 'Toca dos veces para regresar a la pantalla principal de la cámara'
-                          : 'Toca dos veces para regresar a la pantalla principal de ajustes',
                       child: IconButton(
                         tooltip: _currentSubView == SettingsSubView.main
                             ? 'Volver a la cámara'
