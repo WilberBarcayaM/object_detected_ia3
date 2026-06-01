@@ -16,7 +16,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   static const String _onboardingText =
       'Bienvenido. Esta es la primera vez que abres EcoVision. '
       'Primero escucharás estas instrucciones y luego entrarás a la cámara. '
-      'Cuando ya estés dentro de la app, podrás usar el botón de micrófono para decir comandos como buscar seguido del objeto, silencio o instrucciones.';
+      'Cuando ya estés dentro de la app, podrás usar el botón de micrófono para decir comandos como buscar seguido del objeto o instrucciones.';
 
   @override
   void initState() {
@@ -109,7 +109,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 20),
                       const Text(
-                        'Luego podrás usar: buscar [objeto], buscar todo, silencio e instrucciones.',
+                        'Luego podrás usar: buscar [objeto], buscar todo e instrucciones.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white70,

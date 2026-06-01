@@ -80,13 +80,13 @@ class _YoloVideoState extends State<YoloVideo> {
           prefs.getBool(onboardingCompletedKey) ?? false;
       if (!onboardingCompleted) {
         const onboardingText =
-            'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
+            'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, o instrucciones para escuchar este mensaje de ayuda.';
         if (_ttsService.isSpeakingEnabled) await _ttsService.speak(onboardingText);
       }
     } catch (e) {
       if (!_onboardingPlayed) {
         const onboardingText =
-            'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
+            'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, o instrucciones para escuchar este mensaje de ayuda.';
         if (_ttsService.isSpeakingEnabled) await _ttsService.speak(onboardingText);
         _onboardingPlayed = true;
       }
