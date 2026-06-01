@@ -1,14 +1,20 @@
 class VoiceCommandProcessor {
   static const Set<String> supportedObjects = <String>{
     'cama',
+    'camas',
     'grada',
     'gradas',
     'mesa',
+    'mesas',
     'puerta',
+    'puertas',
   };
 
   static const Map<String, String> objectAliases = <String, String>{
+    'camas': 'cama',
     'gradas': 'grada',
+    'mesas': 'mesa',
+    'puertas': 'puerta',
   };
 
   static String normalizeText(String s) {
