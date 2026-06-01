@@ -4,13 +4,18 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../core/constants/app_constants.dart';
+import '../services/bluetooth_service.dart';
+import '../services/stt_service.dart';
+import '../services/tts_service.dart';
+import '../services/voice_command_processor.dart';
+import 'widgets/bounding_boxes_overlay.dart';
+import 'widgets/control_panel_widget.dart';
+import 'widgets/voice_control_panel_widget.dart';
 
 late List<CameraDescription> cameras;
 
@@ -30,39 +35,21 @@ class _YoloVideoState extends State<YoloVideo> {
   bool isDetecting = false;
   String detectedObject = "";
 
-  final _bluetooth = FlutterBluetoothSerial.instance;
+  late final BluetoothService _bluetoothService;
+  late final TtsService _ttsService;
+  late final SttService _sttService;
+
   bool _bluetoothState = false;
   bool _isConnecting = false;
-  BluetoothConnection? _connection;
   List<BluetoothDevice> _devices = [];
-  BluetoothDevice? _deviceConnected;
   String ultrasonicValue = '';
-  FlutterTts flutterTts = FlutterTts();
-  bool _ttsInProgress = false;
-  Timer? _timer;
-  bool _isSpeakingEnabled = true;
-  String _permissionError = '';
-  String _activeSpokenObject = '';
-  DateTime? _lastDetectionAt;
   bool _showControlPanel = false;
   bool mostrarPanelMicrofono = false;
-  late stt.SpeechToText _speech;
-  bool _speechAvailable = false;
-  bool _isStartingListening = false;
-  Timer? _restartListeningTimer;
+  String _permissionError = '';
+  DateTime? _lastDetectionAt;
   String _lastRecognized = '';
   String _lastProcessedVoiceCommand = '';
   String objetoFiltrado = 'todos';
-  final Set<String> _supportedObjects = <String>{
-    'cama',
-    'grada',
-    'gradas',
-    'mesa',
-    'puerta',
-  };
-  final Map<String, String> _objectAliases = <String, String>{
-    'gradas': 'grada',
-  };
   bool _onboardingPlayed = false;
 
   @override
@@ -83,27 +70,72 @@ class _YoloVideoState extends State<YoloVideo> {
       return;
     }
 
-    _initBluetooth();
-    _initTts();
-    _initSpeech();
+    _initBluetoothService();
+    _initTtsService();
+    _initSttService();
+
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final bool onboardingCompleted =
           prefs.getBool(onboardingCompletedKey) ?? false;
       if (!onboardingCompleted) {
-        final onboardingText =
+        const onboardingText =
             'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
-        if (_isSpeakingEnabled) await flutterTts.speak(onboardingText);
+        if (_ttsService.isSpeakingEnabled) await _ttsService.speak(onboardingText);
       }
     } catch (e) {
       if (!_onboardingPlayed) {
-        final onboardingText =
+        const onboardingText =
             'Bienvenido a EcoVision. Puedes decir: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, silencio para silenciar, o instrucciones para escuchar este mensaje de ayuda.';
-        if (_isSpeakingEnabled) await flutterTts.speak(onboardingText);
+        if (_ttsService.isSpeakingEnabled) await _ttsService.speak(onboardingText);
         _onboardingPlayed = true;
       }
     }
     await init();
+  }
+
+  void _initBluetoothService() {
+    _bluetoothService = BluetoothService(
+      onStateChanged: (isEnabled) {
+        if (!mounted) return;
+        setState(() {
+          _bluetoothState = isEnabled;
+        });
+      },
+      onDataReceived: (value) {
+        if (!mounted) return;
+        setState(() {
+          ultrasonicValue = value;
+        });
+      },
+      onConnectionChanged: (device) {
+        if (!mounted) return;
+        setState(() {
+          if (device == null) {
+            _devices = [];
+          }
+        });
+      },
+    );
+    _bluetoothService.init();
+  }
+
+  void _initTtsService() {
+    _ttsService = TtsService();
+    _ttsService.init();
+  }
+
+  void _initSttService() {
+    _sttService = SttService();
+    _sttService.init(
+      onStatus: (s) {
+        print('STT status: $s');
+        _handleSpeechStatus(s);
+      },
+      onError: (e) {
+        print('STT init error: $e');
+      },
+    );
   }
 
   init() async {
@@ -128,74 +160,39 @@ class _YoloVideoState extends State<YoloVideo> {
     await Permission.microphone.request();
   }
 
-  void _initSpeech() async {
-    _speech = stt.SpeechToText();
-    _speechAvailable = await _speech.initialize(
-      onError: (e) => print('STT init error: $e'),
-      onStatus: (s) {
-        print('STT status: $s');
-        _handleSpeechStatus(s);
-      },
-    );
-    setState(() {});
-  }
-
   void _handleSpeechStatus(String status) {
-    if (!mostrarPanelMicrofono || _ttsInProgress) return;
+    if (!mostrarPanelMicrofono || _ttsService.ttsInProgress) return;
     if (status == 'done' || status == 'notListening') {
-      _scheduleListeningRestart(const Duration(milliseconds: 250));
+      _sttService.scheduleListeningRestart(
+        delay: const Duration(milliseconds: 250),
+        shouldRestart: () => mounted && mostrarPanelMicrofono,
+        restartAction: _startListening,
+      );
     }
-  }
-
-  void _scheduleListeningRestart(Duration delay) {
-    _restartListeningTimer?.cancel();
-    _restartListeningTimer = Timer(delay, () {
-      if (!mounted) return;
-      _startListening();
-    });
   }
 
   Future<void> _startListening() async {
-    if (!_speechAvailable || _ttsInProgress || !mostrarPanelMicrofono) return;
-    if (_isStartingListening || _speech.isListening) return;
-    _isStartingListening = true;
-    _lastRecognized = '';
-    try {
-      await _speech.listen(
-        onResult: (result) async {
-          final raw = result.recognizedWords;
-          final text = raw.toLowerCase();
-          final normalized = _normalizeText(text);
-          setState(() => _lastRecognized = raw);
-          if (result.finalResult) {
-            print(
-                'STT final recognized (raw): "$raw" normalized: "$normalized"');
-            await _processVoiceCommand(normalized);
-          } else {
-            print('STT interim recognized: "$raw"');
-            if (_isCompleteVoiceCommand(normalized)) {
-              await _processVoiceCommand(normalized);
-            }
+    await _sttService.startListening(
+      onResultReceived: (rawText) {
+        if (!mounted) return;
+        setState(() {
+          _lastRecognized = rawText;
+        });
+      },
+      onCommandRecognized: (normalizedText, isFinal) async {
+        if (isFinal) {
+          await _processVoiceCommand(normalizedText);
+        } else {
+          if (VoiceCommandProcessor.isCompleteVoiceCommand(normalizedText)) {
+            await _processVoiceCommand(normalizedText);
           }
-        },
-        localeId: 'es_ES',
-        cancelOnError: true,
-        listenFor: const Duration(minutes: 10),
-        pauseFor: const Duration(seconds: 5),
-        partialResults: true,
-        listenMode: stt.ListenMode.dictation,
-      );
-    } finally {
-      _isStartingListening = false;
-    }
-    setState(() {});
-  }
-
-  Future<void> _stopListening() async {
-    if (!_speechAvailable) return;
-    _restartListeningTimer?.cancel();
-    await _speech.stop();
-    setState(() {});
+        }
+      },
+      textNormalizer: VoiceCommandProcessor.normalizeText,
+      isCompleteCommandChecker: VoiceCommandProcessor.isCompleteVoiceCommand,
+      shouldAbort: () => _ttsService.ttsInProgress || !mostrarPanelMicrofono,
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> _toggleMic() async {
@@ -205,17 +202,17 @@ class _YoloVideoState extends State<YoloVideo> {
       try {
         if (isDetecting) await stopDetection();
       } catch (_) {}
-      _timer?.cancel();
+      _ttsService.cancelTimer();
       await _startListening();
     } else {
-      _restartListeningTimer?.cancel();
+      _sttService.cancelRestartTimer();
       try {
-        await _stopListening();
+        await _sttService.stopListening();
       } catch (_) {}
       try {
         if (isLoaded && !isDetecting) await startDetection();
       } catch (_) {}
-      if (_isSpeakingEnabled && detectedObject.isNotEmpty) {
+      if (_ttsService.isSpeakingEnabled && detectedObject.isNotEmpty) {
         await _speakImmediateObject(detectedObject);
       }
     }
@@ -229,21 +226,22 @@ class _YoloVideoState extends State<YoloVideo> {
     if (text.contains('buscar')) {
       if (text.contains('todo') || text.contains('ver todo')) {
         setState(() => objetoFiltrado = 'todos');
-        if (_isSpeakingEnabled)
+        if (_ttsService.isSpeakingEnabled) {
           await _speakWithPause('Detectando todos los objetos');
+        }
       } else {
         final parts = text.split('buscar');
         String candidate = parts.length > 1 ? parts[1].trim() : '';
         if (candidate.isNotEmpty) {
-          final obj = _canonicalObjectName(candidate.split(' ').first);
-          if (!_supportedObjects.contains(obj)) {
-            if (_isSpeakingEnabled) {
+          final obj = VoiceCommandProcessor.canonicalObjectName(candidate.split(' ').first);
+          if (!VoiceCommandProcessor.supportedObjects.contains(obj)) {
+            if (_ttsService.isSpeakingEnabled) {
               await _speakWithPause('Objeto aun no incluido');
             }
             return;
           }
           setState(() => objetoFiltrado = obj);
-          if (_isSpeakingEnabled) {
+          if (_ttsService.isSpeakingEnabled) {
             await _speakWithPause('Buscando solamente $objetoFiltrado');
           }
         }
@@ -252,197 +250,62 @@ class _YoloVideoState extends State<YoloVideo> {
     }
 
     if (text.contains('instrucciones') || text.contains('ayuda')) {
-      final instructions =
+      const instructions =
           'Control de voz activo. Di: buscar seguido del nombre del objeto para filtrar, buscar todo para ver todos los objetos, o instrucciones para escuchar este mensaje.';
-      if (_isSpeakingEnabled) await _speakWithPause(instructions);
+      if (_ttsService.isSpeakingEnabled) await _speakWithPause(instructions);
       return;
     }
 
     _lastProcessedVoiceCommand = '';
   }
 
-  String _canonicalObjectName(String objectName) {
-    final normalized = _normalizeText(objectName);
-    return _objectAliases[normalized] ?? normalized;
-  }
-
-  bool _isCompleteVoiceCommand(String text) {
-    if (text.isEmpty) return false;
-    if (text.contains('instrucciones') || text.contains('ayuda')) return true;
-    if (text.startsWith('buscar ')) {
-      return text.split(' ').length >= 2;
-    }
-    return false;
-  }
-
-  String _normalizeText(String s) {
-    final Map<String, String> map = {
-      'á': 'a',
-      'à': 'a',
-      'ä': 'a',
-      'â': 'a',
-      'Á': 'a',
-      'À': 'a',
-      'Ä': 'a',
-      'Â': 'a',
-      'é': 'e',
-      'è': 'e',
-      'ë': 'e',
-      'ê': 'e',
-      'É': 'e',
-      'È': 'e',
-      'Ë': 'e',
-      'Ê': 'e',
-      'í': 'i',
-      'ì': 'i',
-      'ï': 'i',
-      'î': 'i',
-      'Í': 'i',
-      'Ì': 'i',
-      'Ï': 'i',
-      'Î': 'i',
-      'ó': 'o',
-      'ò': 'o',
-      'ö': 'o',
-      'ô': 'o',
-      'Ó': 'o',
-      'Ò': 'o',
-      'Ö': 'o',
-      'Ô': 'o',
-      'ú': 'u',
-      'ù': 'u',
-      'ü': 'u',
-      'û': 'u',
-      'Ú': 'u',
-      'Ù': 'u',
-      'Ü': 'u',
-      'Û': 'u',
-      'ñ': 'n',
-      'Ñ': 'n',
-      ',': ' ',
-      '.': ' ',
-      ';': ' ',
-      ':': ' ',
-      '!': ' ',
-      '?': ' ',
-      '"': ' ',
-      "'": ' '
-    };
-    String out = s.toLowerCase();
-    map.forEach((k, v) {
-      out = out.replaceAll(k, v);
-    });
-    out = out.replaceAll(RegExp('\\s+'), ' ').trim();
-    return out;
-  }
-
   Future<void> _speakWithPause(String phrase) async {
     if (phrase.isEmpty) return;
-    final bool wasListening = _speechAvailable && _speech.isListening;
-    _ttsInProgress = true;
+    final bool wasListening = _sttService.speechAvailable && _sttService.isListening;
+    _ttsService.ttsInProgress = true;
     if (wasListening) {
       try {
-        await _stopListening();
+        await _sttService.stopListening();
       } catch (_) {}
     }
     try {
-      await flutterTts.speak(phrase);
+      await _ttsService.speak(phrase);
     } catch (e) {
       print('TTS speak error: $e');
     } finally {
-      _ttsInProgress = false;
+      _ttsService.ttsInProgress = false;
       _lastProcessedVoiceCommand = '';
     }
-    if (mostrarPanelMicrofono && _speechAvailable) {
-      _scheduleListeningRestart(const Duration(milliseconds: 300));
+    if (mostrarPanelMicrofono && _sttService.speechAvailable) {
+      _sttService.scheduleListeningRestart(
+        delay: const Duration(milliseconds: 300),
+        shouldRestart: () => mounted && mostrarPanelMicrofono,
+        restartAction: _startListening,
+      );
     }
-  }
-
-  void _initBluetooth() {
-    _bluetooth.state.then((state) {
-      setState(() => _bluetoothState = state.isEnabled);
-    });
-
-    _bluetooth.onStateChanged().listen((state) {
-      setState(() => _bluetoothState = state.isEnabled);
-    });
-  }
-
-  void _initTts() async {
-    await flutterTts.setLanguage("es-ES");
-    await flutterTts.setSpeechRate(0.5);
-    await flutterTts.setVolume(1.0);
-    await flutterTts.setPitch(1.0);
-    try {
-      await flutterTts.awaitSpeakCompletion(true);
-    } catch (_) {}
   }
 
   String _buildSpokenPhrase(String objectName) {
     final bool hasDistance =
-        _connection?.isConnected == true && ultrasonicValue.isNotEmpty;
+        _bluetoothService.isConnected && ultrasonicValue.isNotEmpty;
     return hasDistance
         ? '$objectName a $ultrasonicValue centímetros'
         : objectName;
   }
 
   Future<void> _speakImmediateObject(String objectName) async {
-    if (!_isSpeakingEnabled || objectName.isEmpty || mostrarPanelMicrofono) {
-      return;
-    }
-
-    final String phraseToSpeak = _buildSpokenPhrase(objectName);
-    _activeSpokenObject = objectName;
-    _timer?.cancel();
-    await flutterTts.speak(phraseToSpeak);
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      if (!mounted || !_isSpeakingEnabled || _activeSpokenObject.isEmpty) {
-        return;
-      }
-
-      await _repeatActiveObject();
-    });
-  }
-
-  Future<void> _repeatActiveObject() async {
-    if (!_isSpeakingEnabled ||
-        _activeSpokenObject.isEmpty ||
-        mostrarPanelMicrofono) {
-      return;
-    }
-
-    await flutterTts.speak(_buildSpokenPhrase(_activeSpokenObject));
-  }
-
-  void _getDevices() async {
-    var res = await _bluetooth.getBondedDevices();
-    setState(() => _devices = res);
-  }
-
-  void _receiveData() {
-    String buffer = '';
-    _connection?.input?.listen((event) {
-      try {
-        String data = String.fromCharCodes(event);
-        buffer += data;
-        if (buffer.contains('\n')) {
-          String value = buffer.substring(0, buffer.indexOf('\n')).trim();
-          setState(() {
-            ultrasonicValue = value;
-          });
-          buffer = '';
-        }
-      } catch (e) {
-        print('Error handling received data: $e');
-      }
-    });
+    await _ttsService.speakImmediateObject(
+      objectName: objectName,
+      phraseBuilder: _buildSpokenPhrase,
+      shouldMute: () => !mounted || mostrarPanelMicrofono,
+    );
   }
 
   Future<void> _setControlPanelVisible(bool visible) async {
     if (visible == _showControlPanel) return;
 
     if (visible) {
-      _restartListeningTimer?.cancel();
+      _sttService.cancelRestartTimer();
       if (mostrarPanelMicrofono) {
         setState(() {
           mostrarPanelMicrofono = false;
@@ -450,13 +313,12 @@ class _YoloVideoState extends State<YoloVideo> {
         });
       }
       try {
-        await _stopListening();
+        await _sttService.stopListening();
       } catch (_) {}
 
-      _timer?.cancel();
-      _timer = null;
-      _activeSpokenObject = '';
-      await flutterTts.stop();
+      _ttsService.cancelTimer();
+      _ttsService.resetActiveObject();
+      await _ttsService.stop();
 
       try {
         await stopDetection();
@@ -478,7 +340,7 @@ class _YoloVideoState extends State<YoloVideo> {
       if (isLoaded && !isDetecting) await startDetection();
     } catch (_) {}
 
-    if (_isSpeakingEnabled &&
+    if (_ttsService.isSpeakingEnabled &&
         detectedObject.isNotEmpty &&
         !mostrarPanelMicrofono) {
       await _speakImmediateObject(detectedObject);
@@ -486,14 +348,10 @@ class _YoloVideoState extends State<YoloVideo> {
   }
 
   @override
-  void dispose() async {
-    _timer?.cancel();
-    _restartListeningTimer?.cancel();
-    flutterTts.stop();
-    _connection?.dispose();
-    try {
-      await _stopListening();
-    } catch (_) {}
+  void dispose() {
+    _ttsService.dispose();
+    _bluetoothService.dispose();
+    _sttService.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -552,13 +410,13 @@ class _YoloVideoState extends State<YoloVideo> {
               child: CameraPreview(controller),
             ),
             Positioned.fill(
-              child: Stack(
-                children: [
-                  ...displayBoxesAroundRecognizedObjects(size),
-                ],
+              child: BoundingBoxesOverlay(
+                yoloResults: yoloResults,
+                screenSize: size,
+                cameraImageHeight: cameraImage?.height ?? 0,
+                cameraImageWidth: cameraImage?.width ?? 0,
               ),
             ),
-            if (_showControlPanel) Positioned.fill(child: _buildControlPanel()),
             if (!_showControlPanel)
               Positioned(
                 top: 16,
@@ -617,27 +475,26 @@ class _YoloVideoState extends State<YoloVideo> {
                     backgroundColor: const Color(0xFF00B4D8),
                     foregroundColor: Colors.white,
                     tooltip:
-                        _isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz',
+                        _ttsService.isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz',
                     onPressed: () {
                       setState(() {
-                        _isSpeakingEnabled = !_isSpeakingEnabled;
-                        if (_isSpeakingEnabled) {
+                        _ttsService.isSpeakingEnabled = !_ttsService.isSpeakingEnabled;
+                        if (_ttsService.isSpeakingEnabled) {
                           if (detectedObject.isNotEmpty) {
                             _speakImmediateObject(detectedObject);
                           }
                         } else {
-                          _timer?.cancel();
-                          _timer = null;
-                          _activeSpokenObject = '';
-                          flutterTts.stop();
+                          _ttsService.cancelTimer();
+                          _ttsService.resetActiveObject();
+                          _ttsService.stop();
                         }
                       });
                     },
-                    icon: Icon(_isSpeakingEnabled
+                    icon: Icon(_ttsService.isSpeakingEnabled
                         ? Icons.volume_up
                         : Icons.volume_off),
                     label: Text(
-                        _isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz'),
+                        _ttsService.isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz'),
                   ),
                 ),
               ),
@@ -665,117 +522,55 @@ class _YoloVideoState extends State<YoloVideo> {
               Positioned(
                 left: 16,
                 bottom: 86,
-                child: Material(
-                  color: Colors.transparent,
-                  child: Semantics(
-                    liveRegion: true,
-                    label: mostrarPanelMicrofono &&
-                            _speechAvailable &&
-                            _speech.isListening
-                        ? 'Control de voz escuchando'
-                        : 'Control de voz activo',
-                    value: _lastRecognized.isNotEmpty
-                        ? 'Último comando: $_lastRecognized'
-                        : 'Sin comando reconocido aún',
-                    child: Container(
-                      width: size.width * 0.9,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: const Color(0xFF00B4D8), width: 2),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.mic,
-                            size: 48,
-                            color: const Color(0xFF00B4D8),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  mostrarPanelMicrofono &&
-                                          _speechAvailable &&
-                                          _speech.isListening
-                                      ? 'Escuchando...'
-                                      : 'Control de voz activo. Di un comando: "Buscar [objeto]" o "Instrucciones".',
-                                  style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _lastRecognized.isNotEmpty
-                                      ? 'Último: $_lastRecognized'
-                                      : '',
-                                  style: const TextStyle(color: Colors.white70),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                child: VoiceControlPanelWidget(
+                  width: size.width * 0.9,
+                  isListening: _sttService.isListening,
+                  speechAvailable: _sttService.speechAvailable,
+                  lastRecognized: _lastRecognized,
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildControlPanel() {
-    return Container(
-      color: Colors.grey.shade100,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: Colors.black12,
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Volver de ajustes',
-                    onPressed: () async {
-                      await _setControlPanelVisible(false);
-                    },
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Ajustes',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _controlBT(),
-                    _infoDevice(),
-                    _listDevices(),
-                    _ultrasonicDisplay(),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: const SizedBox(height: 12),
-                    ),
-                  ],
+            if (_showControlPanel)
+              Positioned.fill(
+                child: ControlPanelWidget(
+                  bluetoothState: _bluetoothState,
+                  isConnected: _bluetoothService.isConnected,
+                  isConnecting: _isConnecting,
+                  deviceConnected: _bluetoothService.deviceConnected,
+                  devices: _devices,
+                  ultrasonicValue: ultrasonicValue,
+                  detectedObject: detectedObject,
+                  onBackPressed: () async {
+                    await _setControlPanelVisible(false);
+                  },
+                  onBluetoothStateChanged: (bool value) async {
+                    if (value) {
+                      await _bluetoothService.enable();
+                    } else {
+                      await _bluetoothService.disable();
+                    }
+                  },
+                  onDisconnectPressed: () async {
+                    await _bluetoothService.disconnect();
+                    setState(() {});
+                  },
+                  onGetDevicesPressed: () async {
+                    final res = await _bluetoothService.getBondedDevices();
+                    setState(() {
+                      _devices = res;
+                    });
+                  },
+                  onConnectToDevice: (device) async {
+                    setState(() => _isConnecting = true);
+                    try {
+                      await _bluetoothService.connectToDevice(device);
+                    } catch (_) {}
+                    setState(() {
+                      _devices = [];
+                      _isConnecting = false;
+                    });
+                  },
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -805,12 +600,12 @@ class _YoloVideoState extends State<YoloVideo> {
         classThreshold: 0.5);
     if (!mounted || !isDetecting || _showControlPanel) return;
     if (result.isNotEmpty) {
-      final String selectedFilter = _canonicalObjectName(objetoFiltrado);
+      final String selectedFilter = VoiceCommandProcessor.canonicalObjectName(objetoFiltrado);
       final Map<String, dynamic> selectedResult = selectedFilter == 'todos'
           ? result.first
           : result.cast<Map<String, dynamic>>().firstWhere(
                 (r) =>
-                    _canonicalObjectName(r['tag'].toString()) == selectedFilter,
+                    VoiceCommandProcessor.canonicalObjectName(r['tag'].toString()) == selectedFilter,
                 orElse: () => <String, dynamic>{},
               );
       final bool hasTarget = selectedResult.isNotEmpty;
@@ -822,14 +617,13 @@ class _YoloVideoState extends State<YoloVideo> {
         print(detectedObject);
       });
       _lastDetectionAt = DateTime.now();
-      if (objectName.isNotEmpty && objectName != _activeSpokenObject) {
-        if (!_ttsInProgress && !mostrarPanelMicrofono) {
+      if (objectName.isNotEmpty && objectName != _ttsService.activeSpokenObject) {
+        if (!_ttsService.ttsInProgress && !mostrarPanelMicrofono) {
           await _speakImmediateObject(objectName);
         }
       } else if (objectName.isEmpty) {
-        _activeSpokenObject = '';
-        _timer?.cancel();
-        _timer = null;
+        _ttsService.resetActiveObject();
+        _ttsService.cancelTimer();
       }
     } else {
       setState(() {
@@ -839,11 +633,10 @@ class _YoloVideoState extends State<YoloVideo> {
           DateTime.now().difference(_lastDetectionAt!) >
               const Duration(seconds: 2)) {
         detectedObject = '';
-        _activeSpokenObject = '';
-        _timer?.cancel();
-        _timer = null;
-        if (_isSpeakingEnabled && !_ttsInProgress && !mostrarPanelMicrofono) {
-          flutterTts.stop();
+        _ttsService.resetActiveObject();
+        _ttsService.cancelTimer();
+        if (_ttsService.isSpeakingEnabled && !_ttsService.ttsInProgress && !mostrarPanelMicrofono) {
+          _ttsService.stop();
         }
       }
     }
@@ -877,154 +670,5 @@ class _YoloVideoState extends State<YoloVideo> {
       detectedObject = '';
       _lastDetectionAt = null;
     });
-  }
-
-  List<Widget> displayBoxesAroundRecognizedObjects(Size screen) {
-    if (yoloResults.isEmpty || cameraImage == null) return [];
-
-    double factorX = screen.width / (cameraImage!.height);
-    double factorY = screen.height / (cameraImage!.width);
-
-    Color colorPick = const Color.fromARGB(255, 50, 233, 30);
-
-    return yoloResults.map((result) {
-      return Positioned(
-        left: result["box"][0] * factorX,
-        top: result["box"][1] * factorY,
-        width: (result["box"][2] - result["box"][0]) * factorX,
-        height: (result["box"][3] - result["box"][1]) * factorY,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-            border: Border.all(color: Colors.pink, width: 2.0),
-          ),
-          child: Text(
-            "${result['tag']} ${(result['box'][4] * 100).toStringAsFixed(0)}%",
-            style: TextStyle(
-              background: Paint()..color = colorPick,
-              color: Colors.white,
-              fontSize: 18.0,
-            ),
-          ),
-        ),
-      );
-    }).toList();
-  }
-
-  Widget _controlBT() {
-    return SwitchListTile(
-      value: _bluetoothState,
-      onChanged: (bool value) async {
-        if (value) {
-          await _bluetooth.requestEnable();
-        } else {
-          await _bluetooth.requestDisable();
-        }
-      },
-      tileColor: Colors.black26,
-      title:
-          Text(_bluetoothState ? "Bluetooth encendido" : "Bluetooth apagado"),
-    );
-  }
-
-  Widget _infoDevice() {
-    return ListTile(
-      tileColor: Colors.black12,
-      title: Text("Conectado a: ${_deviceConnected?.name ?? "ninguno"}"),
-      trailing: _connection?.isConnected ?? false
-          ? TextButton(
-              onPressed: () async {
-                await _connection?.finish();
-                setState(() => _deviceConnected = null);
-              },
-              child: const Text("Desconectar"),
-            )
-          : TextButton(
-              onPressed: _getDevices,
-              child: const Text("Ver dispositivos"),
-            ),
-    );
-  }
-
-  Widget _listDevices() {
-    return _isConnecting
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            child: Container(
-              color: Colors.grey.shade100,
-              child: Column(
-                children: _devices
-                    .map((device) => ListTile(
-                          title: Text(device.name ?? device.address),
-                          trailing: TextButton(
-                            child: const Text('Conectar'),
-                            onPressed: () async {
-                              setState(() => _isConnecting = true);
-                              _connection = await BluetoothConnection.toAddress(
-                                  device.address);
-                              _deviceConnected = device;
-                              _devices = [];
-                              _isConnecting = false;
-                              _receiveData();
-                              setState(() {});
-                            },
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
-          );
-  }
-
-  Widget _ultrasonicDisplay() {
-    final String distanceText =
-        ultrasonicValue.isNotEmpty ? '$ultrasonicValue cm' : '—';
-    final String objectText = detectedObject.isNotEmpty ? detectedObject : '—';
-    return ListTile(
-      title: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Objeto: $objectText',
-              style:
-                  const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Distancia: $distanceText',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _toggleSpeakingButton() {
-    return ElevatedButton.icon(
-      onPressed: () {
-        setState(() {
-          _isSpeakingEnabled = !_isSpeakingEnabled;
-          if (_isSpeakingEnabled) {
-            if (detectedObject.isNotEmpty) {
-              _speakImmediateObject(detectedObject);
-            }
-          } else {
-            _timer?.cancel();
-            _timer = null;
-            _activeSpokenObject = '';
-            flutterTts.stop();
-          }
-        });
-      },
-      icon: Icon(
-        _isSpeakingEnabled ? Icons.volume_off : Icons.volume_up,
-        size: 20,
-      ),
-      label: Text(_isSpeakingEnabled ? 'Desactivar voz' : 'Activar voz'),
-    );
   }
 }
