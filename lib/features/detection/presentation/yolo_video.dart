@@ -396,14 +396,16 @@ class _YoloVideoState extends State<YoloVideo> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          title: Image.asset(
-            'assets/logoEcoVision.jpg',
-            height: 34,
-            fit: BoxFit.contain,
-          ),
-        ),
+        appBar: _showControlPanel
+            ? null
+            : AppBar(
+                centerTitle: true,
+                title: Image.asset(
+                  'assets/logoEcoVision.jpg',
+                  height: 34,
+                  fit: BoxFit.contain,
+                ),
+              ),
         body: Stack(
           children: [
             Positioned.fill(

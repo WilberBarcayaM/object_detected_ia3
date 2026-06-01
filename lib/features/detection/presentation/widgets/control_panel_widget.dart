@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
-class ControlPanelWidget extends StatelessWidget {
+enum SettingsSubView {
+  main,
+  conexion,
+  objetos,
+  sensorState,
+}
+
+class ControlPanelWidget extends StatefulWidget {
   final bool bluetoothState;
   final bool isConnected;
   final bool isConnecting;
@@ -33,46 +40,75 @@ class ControlPanelWidget extends StatelessWidget {
   });
 
   @override
+  State<ControlPanelWidget> createState() => _ControlPanelWidgetState();
+}
+
+class _ControlPanelWidgetState extends State<ControlPanelWidget> {
+  SettingsSubView _currentSubView = SettingsSubView.main;
+
+  @override
   Widget build(BuildContext context) {
+    String title;
+    switch (_currentSubView) {
+      case SettingsSubView.main:
+        title = 'Ajustes';
+        break;
+      case SettingsSubView.conexion:
+        title = 'Conexión';
+        break;
+      case SettingsSubView.objetos:
+        title = 'Objetos';
+        break;
+      case SettingsSubView.sensorState:
+        title = 'Estado del Sensor';
+        break;
+    }
+
     return Container(
-      color: Colors.grey.shade100,
+      color: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: Colors.black12,
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Volver de ajustes',
-                    onPressed: onBackPressed,
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Ajustes',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
+            // Cabecera con fondo blanco y sombra inferior
+            Material(
+              elevation: 3.0,
+              shadowColor: Colors.black.withOpacity(0.4),
+              color: Colors.white,
+              child: Container(
+                height: 56.0,
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Row(
                   children: [
-                    _controlBT(),
-                    _infoDevice(),
-                    _listDevices(),
-                    _ultrasonicDisplay(),
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12.0),
-                      child: SizedBox(height: 12),
+                    IconButton(
+                      tooltip: _currentSubView == SettingsSubView.main
+                          ? 'Volver a la cámara'
+                          : 'Volver a Ajustes',
+                      onPressed: () {
+                        if (_currentSubView == SettingsSubView.main) {
+                          widget.onBackPressed();
+                        } else {
+                          setState(() {
+                            _currentSubView = SettingsSubView.main;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ],
                 ),
               ),
+            ),
+            Expanded(
+              child: _buildBody(),
             ),
           ],
         ),
@@ -80,74 +116,328 @@ class ControlPanelWidget extends StatelessWidget {
     );
   }
 
+  Widget _buildBody() {
+    switch (_currentSubView) {
+      case SettingsSubView.main:
+        return _buildMainView();
+      case SettingsSubView.conexion:
+        return _buildConexionView();
+      case SettingsSubView.objetos:
+        return _buildObjetosView();
+      case SettingsSubView.sensorState:
+        return _buildSensorStateView();
+    }
+  }
+
+  Widget _buildMainView() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          _buildMainOptionTile(
+            title: 'Conexión',
+            icon: Icons.bluetooth,
+            onTap: () {
+              setState(() {
+                _currentSubView = SettingsSubView.conexion;
+              });
+            },
+          ),
+          _buildMainOptionTile(
+            title: 'Objetos',
+            icon: Icons.category,
+            onTap: () {
+              setState(() {
+                _currentSubView = SettingsSubView.objetos;
+              });
+            },
+          ),
+          _buildMainOptionTile(
+            title: 'Estado del sensor',
+            icon: Icons.sensors,
+            onTap: () {
+              setState(() {
+                _currentSubView = SettingsSubView.sensorState;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainOptionTile({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.black12,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: Colors.black54,
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.w500,
+            fontSize: 16.0,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: Color(0xFF00B4D8),
+          size: 24.0,
+        ),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildConexionView() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _controlBT(),
+          _infoDevice(),
+          _listDevices(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildObjetosView() {
+    final List<Map<String, dynamic>> items = [
+      {'name': 'Cama', 'icon': Icons.bed},
+      {'name': 'Gradas', 'icon': Icons.stairs},
+      {'name': 'Mesa', 'icon': Icons.table_restaurant},
+      {'name': 'Puerta', 'icon': Icons.meeting_room},
+    ];
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.black12,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: ListTile(
+            leading: Icon(
+              item['icon'] as IconData,
+              color: const Color(0xFF00B4D8),
+            ),
+            title: Text(
+              item['name'] as String,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontWeight: FontWeight.w500,
+                fontSize: 16.0,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSensorStateView() {
+    final String distanceText =
+        widget.ultrasonicValue.isNotEmpty ? '${widget.ultrasonicValue} cm' : '—';
+    final String objectText = widget.detectedObject.isNotEmpty ? widget.detectedObject : '—';
+    return Column(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.black12,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: ListTile(
+            leading: const Icon(
+              Icons.visibility,
+              color: Colors.black54,
+            ),
+            title: Text(
+              'Objeto detectado: $objectText',
+              style: const TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.black12,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: ListTile(
+            leading: const Icon(
+              Icons.straighten,
+              color: Colors.black54,
+            ),
+            title: Text(
+              'Distancia: $distanceText',
+              style: const TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _controlBT() {
-    return SwitchListTile(
-      value: bluetoothState,
-      onChanged: onBluetoothStateChanged,
-      tileColor: Colors.black26,
-      title: Text(bluetoothState ? "Bluetooth encendido" : "Bluetooth apagado"),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.black12,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: SwitchListTile(
+        activeColor: const Color(0xFF00B4D8),
+        activeTrackColor: const Color(0xFF00B4D8).withOpacity(0.38),
+        secondary: Icon(
+          widget.bluetoothState ? Icons.bluetooth : Icons.bluetooth_disabled,
+          color: widget.bluetoothState ? const Color(0xFF00B4D8) : Colors.black38,
+        ),
+        value: widget.bluetoothState,
+        onChanged: widget.onBluetoothStateChanged,
+        title: Text(
+          widget.bluetoothState ? "Bluetooth encendido" : "Bluetooth apagado",
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _infoDevice() {
-    return ListTile(
-      tileColor: Colors.black12,
-      title: Text("Conectado a: ${deviceConnected?.name ?? "ninguno"}"),
-      trailing: isConnected
-          ? TextButton(
-              onPressed: onDisconnectPressed,
-              child: const Text("Desconectar"),
-            )
-          : TextButton(
-              onPressed: onGetDevicesPressed,
-              child: const Text("Ver dispositivos"),
-            ),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.black12,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: ListTile(
+        leading: Icon(
+          widget.isConnected ? Icons.bluetooth_connected : Icons.bluetooth_searching,
+          color: widget.isConnected ? const Color(0xFF00B4D8) : Colors.black38,
+        ),
+        title: Text(
+          "Conectado a: ${widget.deviceConnected?.name ?? "ninguno"}",
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: widget.isConnected
+            ? TextButton(
+                onPressed: widget.onDisconnectPressed,
+                child: const Text(
+                  "Desconectar",
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+              )
+            : TextButton(
+                onPressed: widget.onGetDevicesPressed,
+                child: const Text(
+                  "Ver dispositivos",
+                  style: TextStyle(color: Color(0xFF00B4D8)),
+                ),
+              ),
+      ),
     );
   }
 
   Widget _listDevices() {
-    return isConnecting
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            child: Container(
-              color: Colors.grey.shade100,
-              child: Column(
-                children: devices
-                    .map((device) => ListTile(
-                          title: Text(device.name ?? device.address),
-                          trailing: TextButton(
-                            child: const Text('Conectar'),
-                            onPressed: () => onConnectToDevice(device),
-                          ),
-                        ))
-                    .toList(),
-              ),
-            ),
-          );
-  }
-
-  Widget _ultrasonicDisplay() {
-    final String distanceText =
-        ultrasonicValue.isNotEmpty ? '$ultrasonicValue cm' : '—';
-    final String objectText = detectedObject.isNotEmpty ? detectedObject : '—';
-    return ListTile(
-      title: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Objeto: $objectText',
-              style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Distancia: $distanceText',
-              style: const TextStyle(fontSize: 16.0),
-            ),
-          ],
+    if (widget.isConnecting) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24.0),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFF00B4D8)),
         ),
+      );
+    }
+    if (widget.devices.isEmpty) return const SizedBox.shrink();
+    return Container(
+      color: Colors.grey.shade50,
+      child: Column(
+        children: widget.devices
+            .map((device) => Container(
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.black12,
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: const Icon(Icons.bluetooth, color: Colors.black38),
+                    title: Text(
+                      device.name ?? device.address,
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                    trailing: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00B4D8),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () => widget.onConnectToDevice(device),
+                      child: const Text('Conectar'),
+                    ),
+                  ),
+                ))
+            .toList(),
       ),
     );
   }
