@@ -12,7 +12,6 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final FlutterTts _tts = FlutterTts();
-  bool _speaking = false;
   static const String _onboardingText =
       'Bienvenido. Esta es la primera vez que abres EcoVision. '
       'Primero escucharás estas instrucciones y luego entrarás a la cámara. '
@@ -31,13 +30,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await _tts.setVolume(1.0);
       await _tts.setPitch(1.0);
       await _tts.awaitSpeakCompletion(true);
-      if (!mounted) return;
-      setState(() => _speaking = true);
       await _tts.speak(_onboardingText);
-    } finally {
-      if (mounted) {
-        setState(() => _speaking = false);
-      }
+    } catch (e) {
+      // Ignorar errores de TTS durante inicialización
     }
   }
 
