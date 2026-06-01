@@ -16,12 +16,14 @@ class ControlPanelWidget extends StatefulWidget {
   final List<BluetoothDevice> devices;
   final String ultrasonicValue;
   final String detectedObject;
+  final String objetoFiltrado;
 
   final VoidCallback onBackPressed;
   final ValueChanged<bool> onBluetoothStateChanged;
   final VoidCallback onDisconnectPressed;
   final VoidCallback onGetDevicesPressed;
   final ValueChanged<BluetoothDevice> onConnectToDevice;
+  final ValueChanged<String> onObjectSelected;
 
   const ControlPanelWidget({
     super.key,
@@ -32,11 +34,13 @@ class ControlPanelWidget extends StatefulWidget {
     required this.devices,
     required this.ultrasonicValue,
     required this.detectedObject,
+    required this.objetoFiltrado,
     required this.onBackPressed,
     required this.onBluetoothStateChanged,
     required this.onDisconnectPressed,
     required this.onGetDevicesPressed,
     required this.onConnectToDevice,
+    required this.onObjectSelected,
   });
 
   @override
@@ -57,7 +61,7 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
         title = 'Conexión';
         break;
       case SettingsSubView.objetos:
-        title = 'Objetos';
+        title = 'Seleccionar objeto';
         break;
       case SettingsSubView.sensorState:
         title = 'Estado del Sensor';
@@ -145,7 +149,7 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             },
           ),
           _buildMainOptionTile(
-            title: 'Objetos',
+            title: 'Seleccionar objeto',
             icon: Icons.category,
             onTap: () {
               setState(() {
@@ -220,10 +224,11 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
 
   Widget _buildObjetosView() {
     final List<Map<String, dynamic>> items = [
-      {'name': 'Cama', 'icon': Icons.bed},
-      {'name': 'Gradas', 'icon': Icons.stairs},
-      {'name': 'Mesa', 'icon': Icons.table_restaurant},
-      {'name': 'Puerta', 'icon': Icons.meeting_room},
+      {'name': 'Todos los objetos', 'value': 'todos', 'icon': Icons.all_inclusive},
+      {'name': 'Cama', 'value': 'cama', 'icon': Icons.bed},
+      {'name': 'Gradas', 'value': 'grada', 'icon': Icons.stairs},
+      {'name': 'Mesa', 'value': 'mesa', 'icon': Icons.table_restaurant},
+      {'name': 'Puerta', 'value': 'puerta', 'icon': Icons.meeting_room},
     ];
 
     return ListView.builder(
@@ -232,6 +237,9 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
+        final String value = item['value'] as String;
+        final bool isSelected = widget.objetoFiltrado == value;
+
         return Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -245,16 +253,25 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
           child: ListTile(
             leading: Icon(
               item['icon'] as IconData,
-              color: const Color(0xFF00B4D8),
+              color: isSelected ? const Color(0xFF00B4D8) : Colors.black54,
             ),
             title: Text(
               item['name'] as String,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.w500,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF00B4D8) : Colors.black87,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 16.0,
               ),
             ),
+            trailing: isSelected
+                ? const Icon(
+                    Icons.check,
+                    color: Color(0xFF00B4D8),
+                  )
+                : null,
+            onTap: () {
+              widget.onObjectSelected(value);
+            },
           ),
         );
       },

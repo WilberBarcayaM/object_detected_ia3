@@ -581,6 +581,7 @@ class _YoloVideoState extends State<YoloVideo> {
                   devices: _devices,
                   ultrasonicValue: ultrasonicValue,
                   detectedObject: detectedObject,
+                  objetoFiltrado: objetoFiltrado,
                   onBackPressed: () async {
                     await _setControlPanelVisible(false);
                   },
@@ -609,6 +610,11 @@ class _YoloVideoState extends State<YoloVideo> {
                     setState(() {
                       _devices = [];
                       _isConnecting = false;
+                    });
+                  },
+                  onObjectSelected: (value) {
+                    setState(() {
+                      objetoFiltrado = value;
                     });
                   },
                 ),
