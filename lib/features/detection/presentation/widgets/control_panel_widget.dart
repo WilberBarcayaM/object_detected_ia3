@@ -84,6 +84,7 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                 child: Row(
                   children: [
                     Semantics(
+                      container: true,
                       label: _currentSubView == SettingsSubView.main
                           ? 'Volver a la cámara'
                           : 'Volver a Ajustes',
@@ -105,6 +106,7 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                     ),
                     const SizedBox(width: 8),
                     Semantics(
+                      container: true,
                       header: true,
                       child: Text(
                         title,
