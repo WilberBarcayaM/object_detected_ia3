@@ -85,9 +85,20 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                   children: [
                     Semantics(
                       container: true,
+                      button: true,
+                      excludeSemantics: true,
                       label: _currentSubView == SettingsSubView.main
                           ? 'Volver a la cámara'
                           : 'Volver a Ajustes',
+                      onTap: () {
+                        if (_currentSubView == SettingsSubView.main) {
+                          widget.onBackPressed();
+                        } else {
+                          setState(() {
+                            _currentSubView = SettingsSubView.main;
+                          });
+                        }
+                      },
                       child: IconButton(
                         tooltip: _currentSubView == SettingsSubView.main
                             ? 'Volver a la cámara'

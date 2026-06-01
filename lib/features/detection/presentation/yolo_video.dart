@@ -484,6 +484,9 @@ class _YoloVideoState extends State<YoloVideo> {
                   hint: 'Toca dos veces para ' +
                       (mostrarPanelMicrofono ? 'cerrar' : 'abrir') +
                       ' el panel de micrófono y control de voz',
+                  onTap: () async {
+                    await _toggleMic();
+                  },
                   child: FloatingActionButton(
                     heroTag: 'micFab',
                     backgroundColor: const Color(0xFF00B4D8),
@@ -518,6 +521,21 @@ class _YoloVideoState extends State<YoloVideo> {
                             ? 'silenciar'
                             : 'activar') +
                         ' la lectura de voz de objetos detectados',
+                    onTap: () {
+                      setState(() {
+                        _ttsService.isSpeakingEnabled =
+                            !_ttsService.isSpeakingEnabled;
+                        if (_ttsService.isSpeakingEnabled) {
+                          if (detectedObject.isNotEmpty) {
+                            _speakImmediateObject(detectedObject);
+                          }
+                        } else {
+                          _ttsService.cancelTimer();
+                          _ttsService.resetActiveObject();
+                          _ttsService.stop();
+                        }
+                      });
+                    },
                     child: FloatingActionButton.extended(
                       heroTag: 'speakFab',
                       backgroundColor: const Color(0xFF00B4D8),
@@ -559,6 +577,9 @@ class _YoloVideoState extends State<YoloVideo> {
                   excludeSemantics: true,
                   label: 'Ajustes',
                   hint: 'Toca dos veces para abrir la pantalla de ajustes y configuración de Bluetooth',
+                  onTap: () async {
+                    await _setControlPanelVisible(true);
+                  },
                   child: FloatingActionButton(
                     heroTag: 'settingsFab',
                     backgroundColor: const Color(0xFF00B4D8),
