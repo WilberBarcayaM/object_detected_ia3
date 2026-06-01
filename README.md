@@ -1,16 +1,61 @@
-# reconocimiento
+# EcoVision
 
-A new Flutter project.
+EcoVision is a Flutter application for object detection using the device camera, on-screen overlays, and voice interaction.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- Real-time object detection with camera preview.
+- Voice control using STT and TTS.
+- Commands like `buscar [objeto]`, `buscar todo`, and `instrucciones`.
+- Persistent onboarding that is played only once.
+- Bluetooth support for distance/sensor data.
+- Full-screen settings panel and accessibility labels for TalkBack and VoiceOver.
+- Custom app icon and branded UI.
 
-A few resources to get you started if this is your first Flutter project:
+## Supported objects
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- cama
+- grada / gradas
+- mesa
+- puerta
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+If the user says `buscar` with an unsupported object, the app responds with `Objeto aun no incluido`.
+
+## Requirements
+
+- Flutter SDK
+- Android Studio, Xcode, or VS Code with Flutter support
+- Android or iOS device for camera, speech, and Bluetooth features
+
+## Setup
+
+Install dependencies:
+
+```bash
+flutter pub get
+```
+
+## Run
+
+Run on a connected device:
+
+```bash
+flutter run
+```
+
+## Useful commands
+
+- `buscar [objeto]`: filter announcements to a specific object.
+- `buscar todo`: show and announce all supported objects.
+- `instrucciones`: hear the help message.
+
+## Project structure
+
+- `lib/main.dart`: main app logic, camera, voice control, and settings.
+- `assets/`: logo, labels, and TFLite model.
+- `test/widget_test.dart`: basic widget test.
+
+## Notes
+
+- Do not commit generated folders such as `build/` or `.dart_tool/`.
+- Platform build artifacts and ephemeral files are ignored through `.gitignore`.
