@@ -76,6 +76,8 @@ flutter:
   assets:
     - assets/labels.txt
     - assets/model.tflite
+    - assets/labels_coco.txt
+    - assets/yolov8n_float32.tflite
     - assets/logoEcoVision.jpg
     - assets/images/hardware/
 
