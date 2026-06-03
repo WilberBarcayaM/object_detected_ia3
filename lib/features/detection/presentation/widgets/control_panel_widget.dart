@@ -923,11 +923,48 @@ void loop() {
   }
 
   Widget _buildSensorStateView() {
-    final String distanceText = widget.ultrasonicValue.isNotEmpty
-        ? '${widget.ultrasonicValue} cm'
-        : '—';
+    final bool hasData = widget.ultrasonicValue.isNotEmpty;
+    final String distanceText = hasData ? '${widget.ultrasonicValue} cm' : '—';
+    final String statusText = hasData ? 'Con datos del sensor' : 'Sin valor del sensor';
+    final Color statusColor = hasData ? const Color(0xFF2EC4B6) : Colors.orange;
+    final IconData statusIcon = hasData ? Icons.sensors : Icons.sensors_off;
+
     return Column(
       children: [
+        // Estado del sensor
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.black12,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: ListTile(
+            leading: Icon(
+              statusIcon,
+              color: statusColor,
+            ),
+            title: const Text(
+              'Estado del sensor',
+              style: TextStyle(
+                fontSize: 14.0,
+                color: Colors.black54,
+              ),
+            ),
+            subtitle: Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+              ),
+            ),
+          ),
+        ),
+        // Distancia medida
         Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -943,11 +980,18 @@ void loop() {
               Icons.straighten,
               color: Colors.black54,
             ),
-            title: Text(
-              'Distancia: $distanceText',
+            title: const Text(
+              'Distancia medida',
+              style: TextStyle(
+                fontSize: 14.0,
+                color: Colors.black54,
+              ),
+            ),
+            subtitle: Text(
+              distanceText,
               style: const TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w500,
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
             ),
