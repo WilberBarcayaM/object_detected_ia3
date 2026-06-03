@@ -470,7 +470,6 @@ class _YoloVideoState extends State<YoloVideo> {
                   ),
                 ),
               ),
-
             if (!_showControlPanel)
               Positioned(
                 left: 16,
@@ -576,7 +575,8 @@ class _YoloVideoState extends State<YoloVideo> {
                   button: true,
                   excludeSemantics: true,
                   label: 'Ajustes',
-                  hint: 'Toca dos veces para abrir la pantalla de ajustes y configuración de Bluetooth',
+                  hint:
+                      'Toca dos veces para abrir la pantalla de ajustes y configuración de Bluetooth',
                   onTap: () async {
                     await _setControlPanelVisible(true);
                   },
@@ -659,11 +659,14 @@ class _YoloVideoState extends State<YoloVideo> {
 
   Future<void> loadYoloModel() async {
     await widget.vision.loadYoloModel(
-        labels: 'assets/labels.txt',
-        modelPath: 'assets/model.tflite',
+        // labels: 'assets/labels.txt',
+        // modelPath: 'assets/model.tflite',
+        labels: 'assets/labels_coco.txt',
+        modelPath: 'assets/yolov8n_float32.tflite',
         modelVersion: "yolov8",
         numThreads: 6,
         useGpu: true);
+    await VoiceCommandProcessor.loadLabels();
     setState(() {
       isLoaded = true;
     });

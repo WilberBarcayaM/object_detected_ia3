@@ -12,14 +12,27 @@ EcoVision is a Flutter application for object detection using the device camera,
 - Full-screen settings panel and accessibility labels for TalkBack and VoiceOver.
 - Custom app icon and branded UI.
 
-## Supported objects
+## Supported Objects & Model Upgrade
 
-- cama
-- grada / gradas
-- mesa
-- puerta
+EcoVision started as a prototype targeting 4 specific home navigation objects (`cama`, `grada`, `mesa`, `puerta`). It has now been upgraded to use the **YOLOv8** model trained on the **COCO 2017 Dataset**, supporting **80 different classes** of real-world objects.
 
-If the user says `buscar` with an unsupported object, the app responds with `Objeto aun no incluido`.
+### Dataset Credit
+Special thanks and credit go to the creators of the [COCO Dataset](https://cocodataset.org/) (Microsoft COCO: Common Objects in Context), which makes robust, open-source object detection possible.
+
+The 80 supported classes are organized into 8 logical categories inside the app settings (fully translated and optimized for Spanish voice search and text-to-speech feedback):
+- **Kitchen (Cocina)**: botella (bottle), copa de vino (wine glass), taza (cup), tenedor (fork), cuchillo (knife), cuchara (spoon), tazón (bowl), microondas (microwave), horno (oven), tostadora (toaster), fregadero (sink), refrigerador (refrigerator).
+- **Home & Furniture (Hogar y Muebles)**: silla (chair), sofá (couch), planta en maceta (potted plant), cama (bed), mesa de comedor (dining table), inodoro (toilet), televisor (tv), florero (vase), reloj (clock).
+- **People & Vehicles (Gente y Vehículos)**: persona (person), bicicleta (bicycle), auto (car), motocicleta (motorcycle), avión (airplane), autobús (bus), tren (train), camión (truck), barco (boat).
+- **Devices & Personal Items (Dispositivos y Uso Personal)**: mochila (backpack), paraguas (umbrella), bolso (handbag), corbata (tie), maleta (suitcase), laptop, mouse, control remoto (remote control), teclado (keyboard), celular (cell phone), libro (book), tijeras (scissors), secador de pelo (hair drier), cepillo de dientes (toothbrush).
+- **Animals & Pets (Animales y Mascotas)**: pájaro (bird), gato (cat), perro (dog), caballo (horse), oveja (sheep), vaca (vaca), elefante (elephant), oso (bear), cebra (zebra), jirafa (giraffe), oso de peluche (teddy bear).
+- **Sports & Entertainment (Deportes y Entretenimiento)**: frisbee, esquís (skis), tabla de snowboard, pelota deportiva (sports ball), cometa (kite), bate de béisbol (baseball bat), guante de béisbol (baseball glove), patineta (skateboard), tabla de surf (surfboard), raqueta de tenis (tennis racket).
+- **Food (Comida y Alimentos)**: plátano (banana), manzana (apple), sándwich, naranja (orange), brócoli (broccoli), zanahoria (carrot), hot dog, pizza, dona (donut), pastel (cake).
+- **Public Way & Signals (Vía Pública y Señales)**: semáforo (traffic light), hidrante (fire hydrant), señal de pare (stop sign), parquímetro (parking meter), banco (bench).
+
+> [!NOTE]
+> Although the YOLOv8 model uses English classes natively, EcoVision translates these labels in real time. Users can use Spanish voice commands (e.g., `buscar cuchara`, `buscar celular`) and the system handles plural variations dynamically (`cucharas`, `celulares`) using a custom Spanish pluralization algorithm.
+
+For voice search, if you request an object that is not part of the 80 COCO classes, the app will announce `Objeto aun no incluido`.
 
 ## Requirements
 

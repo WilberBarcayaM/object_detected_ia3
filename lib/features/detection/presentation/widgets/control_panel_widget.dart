@@ -695,28 +695,111 @@ void loop() {
   }
 
   Widget _buildObjetosView() {
-    final List<Map<String, dynamic>> items = [
-      {
-        'name': 'Todos los objetos',
-        'value': 'todos',
-        'icon': Icons.all_inclusive
-      },
-      {'name': 'Cama', 'value': 'cama', 'icon': Icons.bed},
-      {'name': 'Gradas', 'value': 'grada', 'icon': Icons.stairs},
-      {'name': 'Mesa', 'value': 'mesa', 'icon': Icons.table_restaurant},
-      {'name': 'Puerta', 'value': 'puerta', 'icon': Icons.meeting_room},
-    ];
+    final Map<String, List<Map<String, dynamic>>> categories = {
+      'Cocina': [
+        {'name': 'Botella', 'value': 'botella', 'icon': Icons.local_drink},
+        {'name': 'Copa de vino', 'value': 'copa de vino', 'icon': Icons.wine_bar},
+        {'name': 'Taza', 'value': 'taza', 'icon': Icons.local_cafe},
+        {'name': 'Tenedor', 'value': 'tenedor', 'icon': Icons.restaurant},
+        {'name': 'Cuchillo', 'value': 'cuchillo', 'icon': Icons.restaurant},
+        {'name': 'Cuchara', 'value': 'cuchara', 'icon': Icons.restaurant},
+        {'name': 'Tazón', 'value': 'tazón', 'icon': Icons.breakfast_dining},
+        {'name': 'Microondas', 'value': 'microondas', 'icon': Icons.kitchen},
+        {'name': 'Horno', 'value': 'horno', 'icon': Icons.kitchen},
+        {'name': 'Tostadora', 'value': 'tostadora', 'icon': Icons.kitchen},
+        {'name': 'Fregadero', 'value': 'fregadero', 'icon': Icons.wash},
+        {'name': 'Refrigerador', 'value': 'refrigerador', 'icon': Icons.kitchen},
+      ],
+      'Hogar y Muebles': [
+        {'name': 'Silla', 'value': 'silla', 'icon': Icons.chair},
+        {'name': 'Sofá', 'value': 'sofá', 'icon': Icons.single_bed},
+        {'name': 'Planta en maceta', 'value': 'planta en maceta', 'icon': Icons.yard},
+        {'name': 'Cama', 'value': 'cama', 'icon': Icons.bed},
+        {'name': 'Mesa de comedor', 'value': 'mesa de comedor', 'icon': Icons.table_restaurant},
+        {'name': 'Inodoro', 'value': 'inodoro', 'icon': Icons.wc},
+        {'name': 'Televisor', 'value': 'televisor', 'icon': Icons.tv},
+        {'name': 'Florero', 'value': 'florero', 'icon': Icons.local_florist},
+        {'name': 'Reloj', 'value': 'reloj', 'icon': Icons.access_time},
+      ],
+      'Gente y Vehículos': [
+        {'name': 'Persona', 'value': 'persona', 'icon': Icons.person},
+        {'name': 'Bicicleta', 'value': 'bicicleta', 'icon': Icons.directions_bike},
+        {'name': 'Auto', 'value': 'auto', 'icon': Icons.directions_car},
+        {'name': 'Motocicleta', 'value': 'motocicleta', 'icon': Icons.motorcycle},
+        {'name': 'Avión', 'value': 'avión', 'icon': Icons.flight},
+        {'name': 'Autobús', 'value': 'autobús', 'icon': Icons.directions_bus},
+        {'name': 'Tren', 'value': 'tren', 'icon': Icons.directions_railway},
+        {'name': 'Camión', 'value': 'camión', 'icon': Icons.local_shipping},
+        {'name': 'Barco', 'value': 'barco', 'icon': Icons.directions_boat},
+      ],
+      'Dispositivos y Uso Personal': [
+        {'name': 'Mochila', 'value': 'mochila', 'icon': Icons.backpack},
+        {'name': 'Paraguas', 'value': 'paraguas', 'icon': Icons.umbrella},
+        {'name': 'Bolso', 'value': 'bolso', 'icon': Icons.work},
+        {'name': 'Corbata', 'value': 'corbata', 'icon': Icons.straighten},
+        {'name': 'Maleta', 'value': 'maleta', 'icon': Icons.business_center},
+        {'name': 'Laptop', 'value': 'laptop', 'icon': Icons.laptop},
+        {'name': 'Mouse', 'value': 'mouse', 'icon': Icons.mouse},
+        {'name': 'Control remoto', 'value': 'control remoto', 'icon': Icons.settings_remote},
+        {'name': 'Teclado', 'value': 'teclado', 'icon': Icons.keyboard},
+        {'name': 'Celular', 'value': 'celular', 'icon': Icons.smartphone},
+        {'name': 'Libro', 'value': 'libro', 'icon': Icons.book},
+        {'name': 'Tijeras', 'value': 'tijeras', 'icon': Icons.content_cut},
+        {'name': 'Secador de pelo', 'value': 'secador de pelo', 'icon': Icons.air},
+        {'name': 'Cepillo de dientes', 'value': 'cepillo de dientes', 'icon': Icons.cleaning_services},
+      ],
+      'Animales y Mascotas': [
+        {'name': 'Pájaro', 'value': 'pájaro', 'icon': Icons.flutter_dash},
+        {'name': 'Gato', 'value': 'gato', 'icon': Icons.pets},
+        {'name': 'Perro', 'value': 'perro', 'icon': Icons.pets},
+        {'name': 'Caballo', 'value': 'caballo', 'icon': Icons.cruelty_free},
+        {'name': 'Oveja', 'value': 'oveja', 'icon': Icons.cruelty_free},
+        {'name': 'Vaca', 'value': 'vaca', 'icon': Icons.cruelty_free},
+        {'name': 'Elefante', 'value': 'elefante', 'icon': Icons.cruelty_free},
+        {'name': 'Oso', 'value': 'oso', 'icon': Icons.cruelty_free},
+        {'name': 'Cebra', 'value': 'cebra', 'icon': Icons.cruelty_free},
+        {'name': 'Jirafa', 'value': 'jirafa', 'icon': Icons.cruelty_free},
+        {'name': 'Oso de peluche', 'value': 'oso de peluche', 'icon': Icons.toys},
+      ],
+      'Deportes y Entretenimiento': [
+        {'name': 'Frisbee', 'value': 'frisbee', 'icon': Icons.album},
+        {'name': 'Esquís', 'value': 'esquís', 'icon': Icons.downhill_skiing},
+        {'name': 'Tabla de snowboard', 'value': 'tabla de snowboard', 'icon': Icons.snowboarding},
+        {'name': 'Pelota deportiva', 'value': 'pelota deportiva', 'icon': Icons.sports_soccer},
+        {'name': 'Cometa', 'value': 'cometa', 'icon': Icons.kitesurfing},
+        {'name': 'Bate de béisbol', 'value': 'bate de béisbol', 'icon': Icons.sports_baseball},
+        {'name': 'Guante de béisbol', 'value': 'guante de béisbol', 'icon': Icons.sports_baseball},
+        {'name': 'Patineta', 'value': 'patineta', 'icon': Icons.skateboarding},
+        {'name': 'Tabla de surf', 'value': 'tabla de surf', 'icon': Icons.surfing},
+        {'name': 'Raqueta de tenis', 'value': 'raqueta de tenis', 'icon': Icons.sports_tennis},
+      ],
+      'Comida y Alimentos': [
+        {'name': 'Plátano', 'value': 'plátano', 'icon': Icons.eco},
+        {'name': 'Manzana', 'value': 'manzana', 'icon': Icons.apple},
+        {'name': 'Sándwich', 'value': 'sándwich', 'icon': Icons.lunch_dining},
+        {'name': 'Naranja', 'value': 'naranja', 'icon': Icons.eco},
+        {'name': 'Brócoli', 'value': 'brócoli', 'icon': Icons.eco},
+        {'name': 'Zanahoria', 'value': 'zanahoria', 'icon': Icons.eco},
+        {'name': 'Hot dog', 'value': 'hot dog', 'icon': Icons.fastfood},
+        {'name': 'Pizza', 'value': 'pizza', 'icon': Icons.local_pizza},
+        {'name': 'Dona', 'value': 'dona', 'icon': Icons.bakery_dining},
+        {'name': 'Pastel', 'value': 'pastel', 'icon': Icons.cake},
+      ],
+      'Vía Pública y Señales': [
+        {'name': 'Semáforo', 'value': 'semáforo', 'icon': Icons.traffic},
+        {'name': 'Hidrante', 'value': 'hidrante', 'icon': Icons.local_fire_department},
+        {'name': 'Señal de pare', 'value': 'señal de pare', 'icon': Icons.warning},
+        {'name': 'Parquímetro', 'value': 'parquímetro', 'icon': Icons.local_parking},
+        {'name': 'Banco (Calle)', 'value': 'banco', 'icon': Icons.chair_alt},
+      ],
+    };
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final String value = item['value'] as String;
-        final bool isSelected = widget.objetoFiltrado == value;
+    final bool isAllSelected = widget.objetoFiltrado == 'todos';
 
-        return Container(
+    return ListView(
+      children: [
+        // Botón "Todos los objetos"
+        Container(
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
@@ -728,38 +811,160 @@ void loop() {
           ),
           child: ListTile(
             leading: Icon(
-              item['icon'] as IconData,
-              color: isSelected ? const Color(0xFF00B4D8) : Colors.black54,
+              Icons.all_inclusive,
+              color: isAllSelected ? const Color(0xFF00B4D8) : Colors.black54,
             ),
             title: Text(
-              item['name'] as String,
+              'Todos los objetos',
               style: TextStyle(
-                color: isSelected ? const Color(0xFF00B4D8) : Colors.black87,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isAllSelected ? const Color(0xFF00B4D8) : Colors.black87,
+                fontWeight: isAllSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 16.0,
               ),
             ),
-            trailing: isSelected
+            trailing: isAllSelected
                 ? const Icon(
                     Icons.check,
                     color: Color(0xFF00B4D8),
                   )
                 : null,
             onTap: () {
-              widget.onObjectSelected(value);
+              widget.onObjectSelected('todos');
             },
           ),
-        );
-      },
+        ),
+
+        // ExpansionTiles para cada categoría
+        ...categories.entries.map((entry) {
+          final String categoryName = entry.key;
+          final List<Map<String, dynamic>> categoryItems = entry.value;
+
+          // Verificar si esta categoría tiene el objeto actualmente seleccionado
+          final bool hasSelected = categoryItems.any((item) => item['value'] == widget.objetoFiltrado);
+
+          return Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.black12,
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: ExpansionTile(
+                initiallyExpanded: hasSelected,
+                iconColor: const Color(0xFF00B4D8),
+                collapsedIconColor: hasSelected ? const Color(0xFF00B4D8) : Colors.black54,
+                title: Row(
+                  children: [
+                    Text(
+                      categoryName,
+                      style: TextStyle(
+                        color: hasSelected ? const Color(0xFF00B4D8) : Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                      ),
+                    ),
+                    if (hasSelected) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF00B4D8),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ]
+                  ],
+                ),
+                children: categoryItems.map((item) {
+                  final String value = item['value'] as String;
+                  final bool isSelected = widget.objetoFiltrado == value;
+
+                  return Container(
+                    color: isSelected ? const Color(0xFF00B4D8).withOpacity(0.05) : Colors.grey[50],
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      leading: Icon(
+                        item['icon'] as IconData,
+                        color: isSelected ? const Color(0xFF00B4D8) : Colors.black54,
+                        size: 22,
+                      ),
+                      title: Text(
+                        item['name'] as String,
+                        style: TextStyle(
+                          color: isSelected ? const Color(0xFF00B4D8) : Colors.black87,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 15.0,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              color: Color(0xFF00B4D8),
+                            )
+                          : null,
+                      onTap: () {
+                        widget.onObjectSelected(value);
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          );
+        }).toList(),
+      ],
     );
   }
 
   Widget _buildSensorStateView() {
-    final String distanceText = widget.ultrasonicValue.isNotEmpty
-        ? '${widget.ultrasonicValue} cm'
-        : '—';
+    final bool hasData = widget.ultrasonicValue.isNotEmpty;
+    final String distanceText = hasData ? '${widget.ultrasonicValue} cm' : '—';
+    final String statusText = hasData ? 'Con datos del sensor' : 'Sin valor del sensor';
+    final Color statusColor = hasData ? const Color(0xFF2EC4B6) : Colors.orange;
+    final IconData statusIcon = hasData ? Icons.sensors : Icons.sensors_off;
+
     return Column(
       children: [
+        // Estado del sensor
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.black12,
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: ListTile(
+            leading: Icon(
+              statusIcon,
+              color: statusColor,
+            ),
+            title: const Text(
+              'Estado del sensor',
+              style: TextStyle(
+                fontSize: 14.0,
+                color: Colors.black54,
+              ),
+            ),
+            subtitle: Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+              ),
+            ),
+          ),
+        ),
+        // Distancia medida
         Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -775,11 +980,18 @@ void loop() {
               Icons.straighten,
               color: Colors.black54,
             ),
-            title: Text(
-              'Distancia: $distanceText',
+            title: const Text(
+              'Distancia medida',
+              style: TextStyle(
+                fontSize: 14.0,
+                color: Colors.black54,
+              ),
+            ),
+            subtitle: Text(
+              distanceText,
               style: const TextStyle(
-                fontSize: 16.0,
-                fontWeight: FontWeight.w500,
+                fontSize: 18.0,
+                fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
             ),
