@@ -666,6 +666,7 @@ class _YoloVideoState extends State<YoloVideo> {
         modelVersion: "yolov8",
         numThreads: 6,
         useGpu: true);
+    await VoiceCommandProcessor.loadLabels();
     setState(() {
       isLoaded = true;
     });

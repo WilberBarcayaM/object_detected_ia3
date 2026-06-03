@@ -1,5 +1,9 @@
+import 'package:flutter/services.dart' show rootBundle;
+
 class VoiceCommandProcessor {
-  static const Set<String> supportedObjects = <String>{
+  // --- CÓDIGO DEL MODELO ANTERIOR (4 OBJETOS) - COMENTADO PARA NO PERDERLO ---
+  /*
+  static Set<String> supportedObjects = <String>{
     'cama',
     'camas',
     'grada',
@@ -10,12 +14,57 @@ class VoiceCommandProcessor {
     'puertas',
   };
 
-  static const Map<String, String> objectAliases = <String, String>{
+  static Map<String, String> objectAliases = <String, String>{
     'camas': 'cama',
     'gradas': 'grada',
     'mesas': 'mesa',
     'puertas': 'puerta',
   };
+  */
+
+  // --- MODELO COCO (80 OBJETOS) - Se llenan dinámicamente desde assets/labels_coco.txt ---
+  static Set<String> supportedObjects = {};
+  static Map<String, String> objectAliases = {};
+
+  static Future<void> loadLabels() async {
+    try {
+      final data = await rootBundle.loadString('assets/labels_coco.txt');
+      final lines = data.split('\n');
+      final Set<String> loaded = {};
+      final Map<String, String> aliases = {};
+      for (var line in lines) {
+        final label = normalizeText(line.trim());
+        if (label.isNotEmpty) {
+          loaded.add(label);
+          final plural = getPlural(label);
+          loaded.add(plural);
+          aliases[plural] = label;
+        }
+      }
+      supportedObjects = loaded;
+      objectAliases = aliases;
+      print('VoiceCommandProcessor: Loaded ${supportedObjects.length} objects (including plurals).');
+    } catch (e) {
+      print('VoiceCommandProcessor error loading labels: $e');
+    }
+  }
+
+  static String getPlural(String singular) {
+    if (singular.isEmpty) return '';
+    final vowels = {'a', 'e', 'i', 'o', 'u'};
+    final lastChar = singular[singular.length - 1];
+    if (vowels.contains(lastChar)) {
+      return '${singular}s';
+    }
+    final esConsonants = {'d', 'j', 'l', 'n', 'r', 'z'};
+    if (esConsonants.contains(lastChar)) {
+      if (lastChar == 'z') {
+        return '${singular.substring(0, singular.length - 1)}ces';
+      }
+      return '${singular}es';
+    }
+    return '${singular}s';
+  }
 
   static String normalizeText(String s) {
     final Map<String, String> map = {
