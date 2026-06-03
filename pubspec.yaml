@@ -77,6 +77,7 @@ flutter:
     - assets/labels.txt
     - assets/model.tflite
     - assets/logoEcoVision.jpg
+    - assets/images/hardware/
 
 flutter_launcher_icons:
   android: true

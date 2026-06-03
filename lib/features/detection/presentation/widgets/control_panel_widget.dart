@@ -74,7 +74,7 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
         title = 'Preguntas frecuentes';
         break;
       case SettingsSubView.armado:
-        title = 'Guía de armado';
+        title = 'Guía de armado para el hardware';
         break;
       case SettingsSubView.codigoArduino:
         title = 'Código de Arduino';
@@ -106,7 +106,8 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                       onTap: () {
                         if (_currentSubView == SettingsSubView.main) {
                           widget.onBackPressed();
-                        } else if (_currentSubView == SettingsSubView.codigoArduino) {
+                        } else if (_currentSubView ==
+                            SettingsSubView.codigoArduino) {
                           setState(() {
                             _currentSubView = SettingsSubView.armado;
                           });
@@ -120,12 +121,13 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                         tooltip: _currentSubView == SettingsSubView.main
                             ? 'Volver a la cámara'
                             : (_currentSubView == SettingsSubView.codigoArduino
-                                ? 'Volver a Guía de armado'
+                                ? 'Volver a Guía de armado para el hardware'
                                 : 'Volver a Ajustes'),
                         onPressed: () {
                           if (_currentSubView == SettingsSubView.main) {
                             widget.onBackPressed();
-                          } else if (_currentSubView == SettingsSubView.codigoArduino) {
+                          } else if (_currentSubView ==
+                              SettingsSubView.codigoArduino) {
                             setState(() {
                               _currentSubView = SettingsSubView.armado;
                             });
@@ -135,7 +137,8 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
                             });
                           }
                         },
-                        icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                        icon:
+                            const Icon(Icons.arrow_back, color: Colors.black87),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -217,7 +220,7 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             },
           ),
           _buildMainOptionTile(
-            title: 'Guía de armado',
+            title: 'Guía de armado para el hardware',
             icon: Icons.build,
             onTap: () {
               setState(() {
@@ -246,14 +249,44 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionHeader('1. Componentes requeridos'),
-          _buildBulletItem('Placa Arduino Uno.'),
-          _buildBulletItem('Sensor ultrasónico HC-SR04.'),
-          _buildBulletItem('Módulo Bluetooth HC-05.'),
-          _buildBulletItem('Protoboard pequeña.'),
-          _buildBulletItem('Cables de conexión (Jumpers).'),
-          _buildBulletItem('Batería de 9V (con conector Jack para Arduino).'),
+          _buildComponentCard(
+            title: 'Arduino Uno',
+            description:
+                'Placa microcontroladora principal que procesa las lecturas del sensor y las envía al celular.',
+            imagePath: 'assets/images/hardware/arduino-uno.jpg',
+          ),
+          _buildComponentCard(
+            title: 'Sensor Ultrasónico HC-SR04',
+            description:
+                'Sensor que emite ondas de sonido para calcular la distancia a los obstáculos más cercanos.',
+            imagePath: 'assets/images/hardware/sensor-ultrasonico.jpg',
+          ),
+          _buildComponentCard(
+            title: 'Módulo Bluetooth HC-05',
+            description:
+                'Módulo de transmisión serial inalámbrico que comunica el Arduino con el celular.',
+            imagePath: 'assets/images/hardware/modulo-bluetooth.jpg',
+          ),
+          _buildComponentCard(
+            title: 'Protoboard pequeña',
+            description:
+                'Placa de pruebas para conectar cables y distribuir la alimentación de 5V entre los componentes.',
+            imagePath: 'assets/images/hardware/protoboard.jpg',
+          ),
+          _buildComponentCard(
+            title: 'Batería de 9V y Conector',
+            description:
+                'Batería portátil y clip Jack para alimentar de forma autónoma la placa de Arduino Uno.',
+            imagePath:
+                'assets/images/hardware/bateria-conector-alimentacion.jpg',
+          ),
+          _buildComponentCard(
+            title: 'Cables Jumpers',
+            description:
+                'Cables de conexión tipo macho-macho y macho-hembra para interconectar los pines entre Arduino, protoboard y los módulos.',
+            imagePath: 'assets/images/hardware/cables-jumpers.jpg',
+          ),
           const SizedBox(height: 16),
-          
           _buildSectionHeader('2. Distribución de energía (5V)'),
           _buildInstructionStep(
             'Paso 1: Alimentación protoboard',
@@ -268,7 +301,6 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             'Conecta el pin VCC del sensor ultrasónico a cualquier pin del riel positivo + de la protoboard.',
           ),
           const SizedBox(height: 16),
-
           _buildSectionHeader('3. Conexiones a tierra (GND)'),
           _buildInstructionStep(
             'Paso 4: Bluetooth GND',
@@ -279,7 +311,6 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             'Conecta el pin GND del sensor ultrasónico directamente a otro de los pines GND del Arduino.',
           ),
           const SizedBox(height: 16),
-
           _buildSectionHeader('4. Conexiones de datos'),
           _buildInstructionStep(
             'Paso 6: Bluetooth TX/RX',
@@ -290,7 +321,6 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             'Conecta el pin Trig del sensor al pin digital 5 del Arduino. Conecta el pin Echo del sensor al pin digital 6 del Arduino.',
           ),
           const SizedBox(height: 16),
-
           _buildSectionHeader('5. Montaje y uso portátil'),
           _buildInstructionStep(
             'Paso 8: Alimentación',
@@ -301,7 +331,6 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             'Introduce el circuito en una caja plástica (dejando el sensor descubierto al frente) y ajústala en la parte superior del celular apuntando al frente, alineado con la cámara trasera.',
           ),
           const SizedBox(height: 16),
-
           _buildSectionHeader('6. Código de programación'),
           _buildInstructionStep(
             'Código de Arduino',
@@ -312,7 +341,8 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
             button: true,
             excludeSemantics: true,
             label: 'Ver código de Arduino',
-            hint: 'Toca dos veces para ver el código fuente que se debe cargar en la placa Arduino',
+            hint:
+                'Toca dos veces para ver el código fuente que se debe cargar en la placa Arduino',
             onTap: () {
               setState(() {
                 _currentSubView = SettingsSubView.codigoArduino;
@@ -322,7 +352,8 @@ class _ControlPanelWidgetState extends State<ControlPanelWidget> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00B4D8),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -386,7 +417,8 @@ void loop() {
             button: true,
             excludeSemantics: true,
             label: 'Copiar código de Arduino',
-            hint: 'Toca dos veces para copiar el código de programación en el portapapeles de tu celular',
+            hint:
+                'Toca dos veces para copiar el código de programación en el portapapeles de tu celular',
             onTap: () async {
               await Clipboard.setData(const ClipboardData(text: arduinoCode));
               if (!context.mounted) return;
@@ -465,7 +497,8 @@ void loop() {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('• ', style: TextStyle(color: Colors.black87, fontSize: 16)),
+          const Text('• ',
+              style: TextStyle(color: Colors.black87, fontSize: 16)),
           Expanded(
             child: Text(
               text,
@@ -509,43 +542,59 @@ void loop() {
     final List<Map<String, String>> faqs = [
       {
         'q': '¿Qué es EcoVision y cuál es su objetivo?',
-        'a': 'EcoVision es una aplicación de asistencia diseñada para personas con discapacidad visual. Utiliza la cámara del teléfono y un sensor ultrasónico externo para detectar objetos comunes en el entorno (como camas, gradas, mesas y puertas) y anunciar su presencia y distancia por medio de audio (síntesis de voz).'
+        'a':
+            'EcoVision es una aplicación de asistencia diseñada para personas con discapacidad visual. Utiliza la cámara del teléfono y un sensor ultrasónico externo para detectar objetos comunes en el entorno (como camas, gradas, mesas y puertas) y anunciar su presencia y distancia por medio de audio (síntesis de voz).'
       },
       {
         'q': '¿Cómo funciona la medición de distancia y el sensor ultrasónico?',
-        'a': 'La aplicación se conecta mediante Bluetooth a un dispositivo de medición externo (un módulo Bluetooth HC-05 acoplado a un sensor de distancia ultrasónico). El sensor mide los centímetros de distancia hasta el objeto de frente y la aplicación te lo dice con voz natural: si supera el metro dirá "cama a 1 metro con 15 centímetros", y si es menor dirá "mesa a 40 centímetros".'
+        'a':
+            'La aplicación se conecta mediante Bluetooth a un dispositivo de medición externo (un módulo Bluetooth HC-05 acoplado a un sensor de distancia ultrasónico). El sensor mide los centímetros de distancia hasta el objeto de frente y la aplicación te lo dice con voz natural: si supera el metro dirá "cama a 1 metro con 15 centímetros", y si es menor dirá "mesa a 40 centímetros".'
       },
       {
         'q': '¿Qué objetos puede identificar la aplicación actualmente?',
-        'a': 'La inteligencia artificial de la aplicación está entrenada específicamente para reconocer cuatro objetos críticos de navegación en el hogar: camas, gradas (escaleras), mesas y puertas. Puedes elegir buscar uno en específico o activar la detección de todos de forma simultánea.'
+        'a':
+            'La inteligencia artificial de la aplicación está entrenada específicamente para reconocer cuatro objetos críticos de navegación en el hogar: camas, gradas (escaleras), mesas y puertas. Puedes elegir buscar uno en específico o activar la detección de todos de forma simultánea.'
       },
       {
-        'q': '¿Por qué mi módulo de Bluetooth (por ejemplo, HC-05) no aparece al presionar "Ver dispositivos"?',
-        'a': 'Por motivos de seguridad y rendimiento, la aplicación solo lista dispositivos que ya han sido vinculados (emparejados) previamente en los Ajustes del sistema de tu celular. Si no aparece, abre la configuración de Bluetooth de tu teléfono, vincula el dispositivo ingresando su clave (normalmente 1234 o 0000), y luego regresa a EcoVision para conectarlo con un solo toque.'
+        'q':
+            '¿Por qué mi módulo de Bluetooth (por ejemplo, HC-05) no aparece al presionar "Ver dispositivos"?',
+        'a':
+            'Por motivos de seguridad y rendimiento, la aplicación solo lista dispositivos que ya han sido vinculados (emparejados) previamente en los Ajustes del sistema de tu celular. Si no aparece, abre la configuración de Bluetooth de tu teléfono, vincula el dispositivo ingresando su clave (normalmente 1234 o 0000), y luego regresa a EcoVision para conectarlo con un solo toque.'
       },
       {
         'q': '¿Cómo utilizo el control por comandos de voz?',
-        'a': 'En la parte inferior izquierda de la pantalla de la cámara, presiona el botón de micrófono. Se abrirá un panel que escuchará tus comandos. Puedes decir órdenes en español como: "buscar cama", "buscar gradas", "buscar todo", o "instrucciones". Si el comando u objeto es válido, la app se configurará y cerrará el micrófono automáticamente para evitar interferencias.'
+        'a':
+            'En la parte inferior izquierda de la pantalla de la cámara, presiona el botón de micrófono. Se abrirá un panel que escuchará tus comandos. Puedes decir órdenes en español como: "buscar cama", "buscar gradas", "buscar todo", o "instrucciones". Si el comando u objeto es válido, la app se configurará y cerrará el micrófono automáticamente para evitar interferencias.'
       },
       {
-        'q': '¿Admite plurales el control por voz (por ejemplo, "buscar gradas" o "buscar camas")?',
-        'a': 'Sí. El sistema de procesamiento de voz de la aplicación está optimizado para normalizar el habla. Interpreta de la misma manera términos en singular o plural, como "grada/gradas", "cama/camas", "mesa/mesas" y "puerta/puertas", facilitando su uso intuitivo.'
+        'q':
+            '¿Admite plurales el control por voz (por ejemplo, "buscar gradas" o "buscar camas")?',
+        'a':
+            'Sí. El sistema de procesamiento de voz de la aplicación está optimizado para normalizar el habla. Interpreta de la misma manera términos en singular o plural, como "grada/gradas", "cama/camas", "mesa/mesas" y "puerta/puertas", facilitando su uso intuitivo.'
       },
       {
-        'q': '¿Puedo desactivar temporalmente el audio explicativo de los objetos detectados?',
-        'a': 'Sí. En la parte inferior central tienes el botón Desactivar voz / Activar voz. Al presionarlo, silenciarás las alertas auditivas en tiempo real de los objetos que capta la cámara, permitiéndote navegar de forma silenciosa o usar únicamente el lector de pantalla.'
+        'q':
+            '¿Puedo desactivar temporalmente el audio explicativo de los objetos detectados?',
+        'a':
+            'Sí. En la parte inferior central tienes el botón Desactivar voz / Activar voz. Al presionarlo, silenciarás las alertas auditivas en tiempo real de los objetos que capta la cámara, permitiéndote navegar de forma silenciosa o usar únicamente el lector de pantalla.'
       },
       {
-        'q': '¿Cómo puedo volver a escuchar las instrucciones de ayuda si las olvido?',
-        'a': 'Puedes hacerlo fácilmente de dos maneras:\n1. Abre el control de voz presionando el botón de micrófono en la pantalla principal y di la palabra "instrucciones" o "ayuda".\n2. Consulta la guía en la sección de ajustes. La aplicación reproducirá nuevamente el mensaje con la explicación de los comandos de voz y los objetos que puedes buscar.'
+        'q':
+            '¿Cómo puedo volver a escuchar las instrucciones de ayuda si las olvido?',
+        'a':
+            'Puedes hacerlo fácilmente de dos maneras:\n1. Abre el control de voz presionando el botón de micrófono en la pantalla principal y di la palabra "instrucciones" o "ayuda".\n2. Consulta la guía en la sección de ajustes. La aplicación reproducirá nuevamente el mensaje con la explicación de los comandos de voz y los objetos que puedes buscar.'
       },
       {
-        'q': '¿EcoVision es totalmente compatible con TalkBack y lectores de pantalla?',
-        'a': 'Sí, la interfaz de usuario se ha optimizado para lectores de pantalla. Todos los botones flotantes y los paneles de ajustes cuentan con etiquetas de accesibilidad completas en español (Semantics) y zonas de enfoque separadas. Además, se desactivó la semántica visual de los cuadros de detección de YOLO (ExcludeSemantics) para evitar que TalkBack se trabe al intentar enfocar dinámicamente los recuadros de la cámara.'
+        'q':
+            '¿EcoVision es totalmente compatible con TalkBack y lectores de pantalla?',
+        'a':
+            'Sí, la interfaz de usuario se ha optimizado para lectores de pantalla. Todos los botones flotantes y los paneles de ajustes cuentan con etiquetas de accesibilidad completas en español (Semantics) y zonas de enfoque separadas. Además, se desactivó la semántica visual de los cuadros de detección de YOLO (ExcludeSemantics) para evitar que TalkBack se trabe al intentar enfocar dinámicamente los recuadros de la cámara.'
       },
       {
-        'q': '¿Requiere la aplicación una conexión activa a Internet para funcionar?',
-        'a': 'No. Toda la inferencia de inteligencia artificial (detección YOLOv8), el motor de comandos de voz, la lectura Bluetooth y la síntesis de voz (TTS) se ejecutan de manera local e interna en tu dispositivo. Esto garantiza un funcionamiento rápido, privado y 100% disponible en cualquier lugar, sin gastar datos móviles.'
+        'q':
+            '¿Requiere la aplicación una conexión activa a Internet para funcionar?',
+        'a':
+            'No. Toda la inferencia de inteligencia artificial (detección YOLOv8), el motor de comandos de voz, la lectura Bluetooth y la síntesis de voz (TTS) se ejecutan de manera local e interna en tu dispositivo. Esto garantiza un funcionamiento rápido, privado y 100% disponible en cualquier lugar, sin gastar datos móviles.'
       },
     ];
 
@@ -647,7 +696,11 @@ void loop() {
 
   Widget _buildObjetosView() {
     final List<Map<String, dynamic>> items = [
-      {'name': 'Todos los objetos', 'value': 'todos', 'icon': Icons.all_inclusive},
+      {
+        'name': 'Todos los objetos',
+        'value': 'todos',
+        'icon': Icons.all_inclusive
+      },
       {'name': 'Cama', 'value': 'cama', 'icon': Icons.bed},
       {'name': 'Gradas', 'value': 'grada', 'icon': Icons.stairs},
       {'name': 'Mesa', 'value': 'mesa', 'icon': Icons.table_restaurant},
@@ -702,8 +755,9 @@ void loop() {
   }
 
   Widget _buildSensorStateView() {
-    final String distanceText =
-        widget.ultrasonicValue.isNotEmpty ? '${widget.ultrasonicValue} cm' : '—';
+    final String distanceText = widget.ultrasonicValue.isNotEmpty
+        ? '${widget.ultrasonicValue} cm'
+        : '—';
     return Column(
       children: [
         Container(
@@ -751,7 +805,8 @@ void loop() {
         activeTrackColor: const Color(0xFF00B4D8).withOpacity(0.38),
         secondary: Icon(
           widget.bluetoothState ? Icons.bluetooth : Icons.bluetooth_disabled,
-          color: widget.bluetoothState ? const Color(0xFF00B4D8) : Colors.black38,
+          color:
+              widget.bluetoothState ? const Color(0xFF00B4D8) : Colors.black38,
         ),
         value: widget.bluetoothState,
         onChanged: widget.onBluetoothStateChanged,
@@ -779,7 +834,9 @@ void loop() {
       ),
       child: ListTile(
         leading: Icon(
-          widget.isConnected ? Icons.bluetooth_connected : Icons.bluetooth_searching,
+          widget.isConnected
+              ? Icons.bluetooth_connected
+              : Icons.bluetooth_searching,
           color: widget.isConnected ? const Color(0xFF00B4D8) : Colors.black38,
         ),
         title: Text(
@@ -852,6 +909,73 @@ void loop() {
                   ),
                 ))
             .toList(),
+      ),
+    );
+  }
+
+  Widget _buildComponentCard({
+    required String title,
+    required String description,
+    required String imagePath,
+  }) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+      elevation: 2.0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.black12, width: 0.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.asset(
+                imagePath,
+                width: 70,
+                height: 70,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 70,
+                    height: 70,
+                    color: Colors.grey.shade100,
+                    child:
+                        const Icon(Icons.broken_image, color: Colors.black38),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      color: Colors.black54,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

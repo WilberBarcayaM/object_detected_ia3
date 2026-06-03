@@ -81,11 +81,17 @@ EcoVision connects to an external hardware setup composed of an Arduino UNO, an 
 ### 📋 Components List
 
 1. **Microcontroller**: Arduino Uno.
+   <br/><img src="assets/images/hardware/arduino-uno.jpg" width="250" alt="Arduino Uno"/><br/><br/>
 2. **Distance Sensor**: HC-SR04 Ultrasonic sensor.
+   <br/><img src="assets/images/hardware/sensor-ultrasonico.jpg" width="250" alt="HC-SR04 Ultrasonic Sensor"/><br/><br/>
 3. **Wireless Module**: HC-05 (or HC-06) Bluetooth Serial Pass-Through module.
+   <br/><img src="assets/images/hardware/modulo-bluetooth.jpg" width="250" alt="HC-05 Bluetooth Module"/><br/><br/>
 4. **Power Supply**: 9V Battery with a DC jack connector (for portable usage).
+   <br/><img src="assets/images/hardware/bateria-conector-alimentacion.jpg" width="250" alt="9V Battery and DC Jack"/><br/><br/>
 5. **Prototyping Board**: Breadboard/Protoboard.
+   <br/><img src="assets/images/hardware/protoboard.jpg" width="250" alt="Breadboard"/><br/><br/>
 6. **Wires**: Jumper wires (Male-to-Male and Male-to-Female).
+   <br/><img src="assets/images/hardware/cables-jumpers.jpg" width="250" alt="Jumper Wires"/>
 
 ### 🔌 Circuit Wiring
 
