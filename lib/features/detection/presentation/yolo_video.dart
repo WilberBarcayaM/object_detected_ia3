@@ -679,8 +679,8 @@ class _YoloVideoState extends State<YoloVideo> {
         imageHeight: cameraImage.height,
         imageWidth: cameraImage.width,
         iouThreshold: 0.4,
-        confThreshold: 0.4,
-        classThreshold: 0.5);
+        confThreshold: 0.65, // accuracy in object detection
+        classThreshold: 0.5); // accuracy in class detection
     if (!mounted || !isDetecting || _showControlPanel) return;
     if (result.isNotEmpty) {
       final String selectedFilter =
